@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  /* Link the Next.js Google Fonts */
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* Code Rush Custom Brand Colors */
+  --color-brand-dark: #1E293B;   /* Torch handle slate */
+  --color-brand-blue: #1D4ED8;   /* Accent Blue */
+  --color-brand-yellow: #F59E0B; /* Accent Yellow */
+  --color-brand-green: #16A34A;  /* Accent Green */
+  --color-brand-red: #DC2626;    /* Accent Red */
+}
+
+/* Base styling for the light theme */
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+  }
+}
+
+/* Custom utility for the infinite marquee animation */
+@layer utilities {
+  .animate-marquee {
+    animation: marquee 25s linear infinite;
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-100%); }
+  }
+}
