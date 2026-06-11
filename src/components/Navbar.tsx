@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Menu, X, ChevronRight } from "lucide-react";
 
 import Image from "next/image";
+import { UNSTOP_HREF } from "@/lib/constants";
 
 const NAV_LINKS = [
   { label: "About", href: "#about" },
@@ -14,7 +15,9 @@ const NAV_LINKS = [
   { label: "FAQ", href: "#faq" },
 ] as const;
 
-const REGISTER_HREF = "https://unstop.com/your-event-link"; // Replace with actual Unstop link
+// UNSTOP_HREF is imported from @/lib/constants — edit it there to update
+// the registration link everywhere at once.
+const REGISTER_HREF = UNSTOP_HREF;
 
 interface NavLinkProps {
   href: string;

@@ -3,23 +3,28 @@
 import { useRef } from "react";
 import { motion, useReducedMotion, Variants } from "framer-motion";
 import { ArrowRight, ExternalLink, Circle } from "lucide-react";
+import {
+  UNSTOP_HREF,
+  CONTEST_EDITION,
+  CONTEST_DATES,
+  CONTEST_VENUE,
+} from "@/lib/constants";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const UNSTOP_HREF = "https://unstop.com/your-event-link"; // Replace with live URL
+// UNSTOP_HREF is imported from @/lib/constants — the single source of truth.
 
 const CONTEST_META = {
   eyebrow: "National Coding Championship",
   title: "Code. Compete.\nConquer.",
-  accentLine: "Season IV · 2025",
-  dates: "15 Aug – 01 Sep 2025",
-  location: "Pan-India · Online + Offline Finals",
+  accentLine: CONTEST_EDITION,
+  dates: CONTEST_DATES,
+  location: CONTEST_VENUE,
   body: "A high-stakes programming contest built for engineers who think in edge cases. Solve problems that matter, rank on a live leaderboard, and compete for prizes worth over ₹10,00,000.",
   stats: [
     { value: "12,000+", label: "Registered" },
-    { value: "₹10L", label: "Prize Pool" },
-    { value: "48 hrs", label: "Final Sprint" },
-    { value: "200+", label: "Colleges" },
+    { value: "₹10L",    label: "Prize Pool" },
+    { value: "48 hrs",  label: "Final Sprint" },
+    { value: "200+",    label: "Colleges" },
   ],
 } as const;
 
