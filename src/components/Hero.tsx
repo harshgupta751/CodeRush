@@ -151,7 +151,7 @@ function VideoPanel() {
           "
           aria-hidden="true"
         >
-          Season IV
+          {CONTEST_EDITION}
         </div>
       </div>
 
@@ -365,7 +365,7 @@ export default function Hero() {
               animate="visible"
               className="
                 mt-4 border border-slate-200 rounded-xl
-                px-5 py-4 bg-slate-50/70
+                px-5 py-4 bg-slate-50
                 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4
               "
               aria-label="Quick contest details"
