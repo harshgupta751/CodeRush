@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useReducedMotion, Variants } from "framer-motion";
-import { ArrowRight, ExternalLink, Circle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
+import { ArrowDown, ExternalLink, ArrowRight } from "lucide-react";
+import Image from "next/image";
 import {
   UNSTOP_HREF,
   CONTEST_EDITION,
@@ -10,385 +11,683 @@ import {
   CONTEST_VENUE,
 } from "@/lib/constants";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-// UNSTOP_HREF is imported from @/lib/constants — the single source of truth.
+// ─────────────────────────────────────────────────────────────────────────────
+// Content
+// ─────────────────────────────────────────────────────────────────────────────
 
-const CONTEST_META = {
-  eyebrow: "National Coding Championship",
-  title: "Code. Compete.\nConquer.",
-  accentLine: CONTEST_EDITION,
-  dates: CONTEST_DATES,
-  location: CONTEST_VENUE,
-  body: "A high-stakes programming contest built for engineers who think in edge cases. Solve problems that matter, rank on a live leaderboard, and compete for prizes worth over ₹10,00,000.",
-  stats: [
-    { value: "12,000+", label: "Registered" },
-    { value: "₹10L",    label: "Prize Pool" },
-    { value: "48 hrs",  label: "Final Sprint" },
-    { value: "200+",    label: "Colleges" },
-  ],
-} as const;
+const HERO_TITLE_LINES = ["CODE", "RUSH"];
 
-// ─── Animation Variants ───────────────────────────────────────────────────────
+const STATS = [
+  { value: "12,000+", label: "Registered" },
+  { value: "₹10L",    label: "Prize Pool"  },
+  { value: "48 hrs",  label: "Final Sprint" },
+  { value: "200+",    label: "Colleges"    },
+] as const;
 
-const containerVariants: Variants = {
+const QUICK_FACTS = [
+  { label: "Format",   value: "Solo · Team (2–4)" },
+  { label: "Rounds",   value: "Qualifier · Semi · Final" },
+  { label: "Platform", value: "Unstop + Custom Judge" },
+  { label: "Venue",    value: CONTEST_VENUE },
+] as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Torch-spark particle — pure CSS animated ember dot.
+// Each particle gets a random position, delay, and duration so the cluster
+// looks organic. The motion is a slow float upward with horizontal drift,
+// matching the flame rising from the logo's torch.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SparkProps {
+  style: React.CSSProperties;
+}
+
+function Spark({ style }: SparkProps) {
+  return (
+    <span
+      className="absolute rounded-full pointer-events-none"
+      style={style}
+      aria-hidden="true"
+    />
+  );
+}
+
+// Generates 28 spark particles seeded with deterministic pseudo-random values
+// so SSR and client render match exactly (no hydration mismatch).
+function generateSparks() {
+  // Deterministic LCG pseudo-random — avoids Math.random() on server
+  let seed = 42;
+  function rand() {
+    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+    return (seed >>> 0) / 0xffffffff;
+  }
+
+  // Flame colour stops from the logo: white-core → amber → orange → deep red
+  const colours = [
+    "#FFF5E0", "#FDE68A", "#FDBA74",
+    "#FB923C", "#F97316", "#EA580C",
+    "#DC2626", "#B91C1C",
+  ];
+
+  return Array.from({ length: 28 }, (_, i) => {
+    const size   = 2 + rand() * 5;           // 2–7px
+    const left   = 5 + rand() * 90;          // 5–95% across the title
+    const delay  = rand() * 4;               // 0–4s stagger
+    const dur    = 2.5 + rand() * 3;         // 2.5–5.5s float duration
+    const colour = colours[Math.floor(rand() * colours.length)];
+    const drift  = (rand() - 0.5) * 60;      // –30 to +30px horizontal drift
+
+    return {
+      id: i,
+      style: {
+        width:  size,
+        height: size,
+        left:   `${left}%`,
+        bottom: `${80 + rand() * 20}%`,      // starts near / above the title
+        backgroundColor: colour,
+        boxShadow: `0 0 ${size * 2}px ${colour}`,
+        opacity: 0,
+        animation: `spark-float ${dur}s ${delay}s ease-in infinite`,
+      } as React.CSSProperties,
+    };
+  });
+}
+
+const SPARKS = generateSparks();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Animated title — each character splits out individually.
+// Uses Framer Motion stagger with a spring so letters arrive with weight.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const titleContainer = {
   hidden: {},
   visible: {
+    transition: { staggerChildren: 0.04, delayChildren: 0.3 },
+  },
+};
+
+const letterVariant = {
+  hidden: { opacity: 0, y: 60, rotateX: -40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
     transition: {
-      staggerChildren: 0.11,
-      delayChildren: 0.05,
+      type: "spring" as const,
+      stiffness: 180,
+      damping: 18,
+      mass: 0.8,
     },
   },
 };
 
-const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 22 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
-  },
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// Counter — animates a number from 0 to its target value on mount.
+// Pure JS requestAnimationFrame — zero dependencies.
+// ─────────────────────────────────────────────────────────────────────────────
 
-const fadeIn: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { duration: 0.6, ease: "easeOut" },
-  },
-};
+function useCountUp(target: string, duration = 1800) {
+  const [display, setDisplay] = useState("0");
+  const rafRef = useRef<number | null>(null);
 
-const videoPanel: Variants = {
-  hidden: { opacity: 0, scale: 0.97, y: 16 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 },
-  },
-};
+  useEffect(() => {
+    // Extract numeric prefix and suffix (e.g. "12,000+" → num=12000, suffix="+")
+    const numericStr = target.replace(/[^0-9.]/g, "");
+    const num = parseFloat(numericStr);
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+    if (isNaN(num)) {
+      setDisplay(target);
+      return;
+    }
 
-function StatPill({ value, label }: { value: string; label: string }) {
+    // Detect formatting: comma, suffix, prefix
+    const hasComma  = target.includes(",");
+    const suffix    = target.replace(/[0-9,.]*/g, "").replace(/^\s+/, "");
+    const prefix    = target.startsWith("₹") ? "₹" : "";
+    const cleanSuffix = suffix.replace(prefix, "");
+
+    const startTime = performance.now();
+
+    function tick(now: number) {
+      const elapsed  = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased    = 1 - Math.pow(1 - progress, 3);
+      const current  = Math.floor(eased * num);
+
+      let formatted = current.toString();
+      if (hasComma && current >= 1000) {
+        formatted = current.toLocaleString("en-IN");
+      }
+
+      setDisplay(`${prefix}${formatted}${cleanSuffix}`);
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        setDisplay(target);
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration]);
+
+  return display;
+}
+
+function AnimatedStat({ value, label }: { value: string; label: string }) {
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const count = useCountUp(started ? value : "0", 1600);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStarted(true); },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="font-mono text-xl font-bold tracking-tight text-brand-dark leading-none">
-        {value}
+    <div ref={ref} className="flex flex-col items-center gap-1">
+      <span className="font-mono text-2xl sm:text-3xl font-bold text-white leading-none tabular-nums">
+        {started ? count : "0"}
       </span>
-      <span className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
+      <span className="font-mono text-[10px] uppercase tracking-widest text-white/50">
         {label}
       </span>
     </div>
   );
 }
 
-function LiveIndicator() {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-      </span>
-      <span className="font-mono text-[10px] uppercase tracking-widest text-emerald-600">
-        Live Preview
-      </span>
-    </span>
-  );
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// ScrollCaret — bouncing arrow at the very bottom of the hero
+// ─────────────────────────────────────────────────────────────────────────────
 
-function VideoPanel() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
+function ScrollCaret() {
   return (
     <motion.div
-      variants={videoPanel}
-      className="relative w-full"
-      aria-label="Contest highlight reel"
+      className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 2.2, duration: 0.6 }}
+      aria-hidden="true"
     >
-      {/* Terminal chrome bar */}
-      <div
-        className="
-          flex items-center gap-1.5 px-3 py-2.5
-          bg-slate-50 border border-b-0 border-slate-200
-          rounded-t-xl
-        "
-        aria-hidden="true"
+      <span className="font-mono text-[9px] uppercase tracking-widest text-white/40">
+        Scroll
+      </span>
+      <motion.div
+        animate={{ y: [0, 7, 0] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Circle size={9} className="fill-red-400 text-red-400" />
-        <Circle size={9} className="fill-amber-400 text-amber-400" />
-        <Circle size={9} className="fill-emerald-400 text-emerald-400" />
-        <span className="ml-2 font-mono text-[10px] text-slate-400 tracking-wide select-none">
-          hero-stream.mp4
-        </span>
-      </div>
-
-      {/* Video container */}
-      <div className="relative border border-slate-200 overflow-hidden rounded-b-xl bg-slate-100">
-        <video
-          ref={videoRef}
-          src="/assets/hero-stream.mp4"
-          muted
-          loop
-          autoPlay
-          playsInline
-          className="w-full h-full object-cover aspect-video block"
-          aria-label="Contest highlight reel video"
-        />
-
-        {/* Subtle overlay gradient — deepens bottom edge so status bar reads */}
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none"
-          aria-hidden="true"
-        />
-
-        {/* Corner badge */}
-        <div
-          className="
-            absolute top-3 right-3
-            font-mono text-[10px] uppercase tracking-widest
-            bg-white/90 backdrop-blur-sm border border-slate-200
-            text-brand-blue px-2.5 py-1 rounded-full
-          "
-          aria-hidden="true"
-        >
-          {CONTEST_EDITION}
-        </div>
-      </div>
-
-      {/* Status line beneath video */}
-      <div
-        className="
-          mt-3 flex items-center justify-between
-          px-1 font-mono text-[10px] uppercase tracking-widest text-slate-400
-        "
-        aria-hidden="true"
-      >
-        <LiveIndicator />
-        <span>/assets/hero-stream.mp4 · 1920×1080</span>
-      </div>
+        <ArrowDown size={16} className="text-white/40" strokeWidth={1.5} />
+      </motion.div>
     </motion.div>
   );
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// FourBarAccent — the brand colour strip from the logo, animated in sequence
+// ─────────────────────────────────────────────────────────────────────────────
 
-export default function Hero() {
-  const shouldReduceMotion = useReducedMotion();
-
-  // When reduced motion is preferred, skip stagger and just show content
-  const resolvedContainer = shouldReduceMotion
-    ? {}
-    : containerVariants;
-  const resolvedChild = shouldReduceMotion
-    ? {}
-    : fadeUp;
+function FourBarAccent() {
+  const bars = [
+    { color: "bg-brand-blue",   delay: 0.8  },
+    { color: "bg-brand-yellow", delay: 0.95 },
+    { color: "bg-brand-green",  delay: 1.1  },
+    { color: "bg-brand-red",    delay: 1.25 },
+  ] as const;
 
   return (
-    <section
-      className="
-        relative bg-white overflow-hidden
-        border-b border-slate-200/80
-      "
-      aria-label="Hero section"
-    >
-      {/* Subtle grid texture — only visible on white, very quiet */}
-      <div
-        className="
-          pointer-events-none absolute inset-0
-          bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)]
-          bg-[size:40px_40px] opacity-60
-        "
-        aria-hidden="true"
-      />
+    <div className="absolute bottom-0 left-0 right-0 flex z-20" aria-hidden="true">
+      {bars.map(({ color, delay }) => (
+        <motion.div
+          key={color}
+          className={`flex-1 h-1 ${color}`}
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+          style={{ originX: 0 }}
+        />
+      ))}
+    </div>
+  );
+}
 
-      {/* Radial glow anchored top-left — brand-blue at ~4% opacity */}
-      <div
-        className="
-          pointer-events-none absolute -top-32 -left-32 w-[600px] h-[600px]
-          rounded-full bg-brand-blue/[0.04] blur-3xl
-        "
-        aria-hidden="true"
-      />
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero
+// ─────────────────────────────────────────────────────────────────────────────
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+export default function Hero() {
+  const shouldReduceMotion = useReducedMotion() ?? false;
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
-          {/* ── Left column: copy ── */}
-          <motion.div
-            variants={resolvedContainer}
-            initial="hidden"
-            animate="visible"
-            className="flex flex-col"
+  return (
+    <>
+      {/*
+        ── Global keyframe injected via a <style> tag.
+        spark-float: each ember rises upward, drifts slightly sideways,
+        and fades out — mimicking the logo torch flame.
+        We cannot put arbitrary @keyframes in globals.css Tailwind v4 easily,
+        so a scoped <style> inside the component is the cleanest approach.
+      */}
+      <style>{`
+        @keyframes spark-float {
+          0%   { opacity: 0;    transform: translateY(0)   translateX(0)    scale(1);   }
+          10%  { opacity: 0.9;                                                           }
+          60%  { opacity: 0.6;  transform: translateY(-80px) translateX(var(--dx, 20px)) scale(0.8); }
+          100% { opacity: 0;    transform: translateY(-140px) translateX(var(--dx, 20px)) scale(0.3); }
+        }
+        @keyframes hero-glow-pulse {
+          0%, 100% { opacity: 0.55; transform: scale(1);    }
+          50%       { opacity: 0.75; transform: scale(1.08); }
+        }
+        @keyframes scanline {
+          0%   { transform: translateY(-100%); }
+          100% { transform: translateY(100vh); }
+        }
+      `}</style>
+
+      <section
+        className="relative w-full min-h-screen overflow-hidden bg-black"
+        aria-label="Hero section"
+      >
+
+        {/* ══════════════════════════════════════════════════════════
+            LAYER 1 — Full-bleed background video
+            Covers entire viewport. Muted, looping, autoplay.
+            Falls back to a dark slate bg-black if video fails to load.
+        ══════════════════════════════════════════════════════════ */}
+        <div className="absolute inset-0 z-0">
+          <AnimatePresence>
+            {videoLoaded && (
+              <motion.div
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1.2, ease: "easeIn" }}
+              >
+                <div
+                  className="absolute inset-0 z-10"
+                  style={{
+                    background:
+                      "linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.38) 40%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.92) 100%)",
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <video
+            src="/assets/hero-stream.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            onCanPlay={() => setVideoLoaded(true)}
+            className="absolute inset-0 w-full h-full object-cover"
+            aria-hidden="true"
+          />
+
+          {/* Dark overlay always present so text is readable even before video */}
+          <div
+            className="absolute inset-0 z-10"
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.88) 100%)",
+            }}
+          />
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            LAYER 2 — Ambient glow orbs (brand-blue + brand-red)
+            Two soft radial glows sit behind the title, breathing
+            slowly to give the dark canvas a sense of depth and
+            warmth without overwhelming the video.
+        ══════════════════════════════════════════════════════════ */}
+        <div
+          className="pointer-events-none absolute inset-0 z-10"
+          aria-hidden="true"
+        >
+          {/* Blue glow — top-left */}
+          <div
+            className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full"
+            style={{
+              background: "radial-gradient(circle, rgba(29,78,216,0.28) 0%, transparent 70%)",
+              animation: "hero-glow-pulse 6s ease-in-out infinite",
+            }}
+          />
+          {/* Red/orange glow — bottom-right, torch warmth */}
+          <div
+            className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full"
+            style={{
+              background: "radial-gradient(circle, rgba(220,38,38,0.20) 0%, transparent 70%)",
+              animation: "hero-glow-pulse 7s 1.5s ease-in-out infinite",
+            }}
+          />
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            LAYER 3 — Scanline texture overlay
+            A single semi-transparent horizontal line sweeps top-to-
+            bottom every 8 seconds, giving the video a subtle "live
+            broadcast" feel that connects to the competitive arena theme.
+        ══════════════════════════════════════════════════════════ */}
+        <div
+          className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              height: "2px",
+              background:
+                "linear-gradient(to right, transparent, rgba(255,255,255,0.04), transparent)",
+              animation: "scanline 8s linear infinite",
+            }}
+          />
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            LAYER 4 — Spark particles (torch flame embers)
+            28 CSS-animated ember dots float upward above the title,
+            coloured using the exact flame gradient from the logo.
+            They are absolutely positioned relative to the title area.
+        ══════════════════════════════════════════════════════════ */}
+        {!shouldReduceMotion && (
+          <div
+            className="pointer-events-none absolute inset-0 z-20"
+            aria-hidden="true"
           >
-            {/* Eyebrow */}
-            <motion.div variants={resolvedChild} className="mb-5">
-              <span
-                className="
-                  inline-flex items-center gap-2
-                  font-mono text-xs uppercase tracking-widest text-brand-blue
-                  border border-brand-blue/20 bg-brand-blue/5
-                  px-3 py-1.5 rounded-full
-                "
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-brand-blue inline-block"
-                  aria-hidden="true"
-                />
-                {CONTEST_META.eyebrow}
-              </span>
-            </motion.div>
+            {SPARKS.map((spark) => (
+              <Spark key={spark.id} style={spark.style} />
+            ))}
+          </div>
+        )}
 
-            {/* Main title */}
-            <motion.h1
-              variants={resolvedChild}
+        {/* ══════════════════════════════════════════════════════════
+            LAYER 5 — Main content
+        ══════════════════════════════════════════════════════════ */}
+        <div className="relative z-30 flex flex-col min-h-screen">
+
+          {/* ── Top eyebrow bar ── */}
+          <motion.div
+            className="flex justify-center pt-28 pb-6"
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <span
               className="
-                font-sans text-5xl sm:text-6xl lg:text-[64px]
-                font-bold tracking-tight text-brand-dark
-                leading-[1.05] whitespace-pre-line mb-5
+                inline-flex items-center gap-2
+                font-mono text-[10px] uppercase tracking-widest
+                text-white/70
+                border border-white/15 bg-white/5
+                backdrop-blur-sm
+                px-4 py-2 rounded-full
               "
             >
-              {CONTEST_META.title}
-            </motion.h1>
-
-            {/* Accent line — dates + location */}
-            <motion.div
-              variants={resolvedChild}
-              className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-6"
-            >
-              <span className="font-mono text-xs uppercase tracking-widest text-brand-blue">
-                {CONTEST_META.accentLine}
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-red" />
               </span>
-              <span className="text-slate-300 font-mono text-xs" aria-hidden="true">
-                /
-              </span>
-              <span className="font-mono text-xs uppercase tracking-widest text-brand-blue">
-                {CONTEST_META.dates}
-              </span>
-              <span className="text-slate-300 font-mono text-xs" aria-hidden="true">
-                /
-              </span>
-              <span className="font-mono text-xs uppercase tracking-widest text-brand-blue">
-                {CONTEST_META.location}
-              </span>
-            </motion.div>
-
-            {/* Body copy */}
-            <motion.p
-              variants={resolvedChild}
-              className="
-                text-slate-500 text-base sm:text-[17px] leading-relaxed
-                font-sans max-w-[480px] mb-8
-              "
-            >
-              {CONTEST_META.body}
-            </motion.p>
-
-            {/* CTA row */}
-            <motion.div
-              variants={resolvedChild}
-              className="flex flex-wrap items-center gap-3 mb-12"
-            >
-              {/* Primary CTA */}
-              <a
-                href={UNSTOP_HREF}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="
-                  inline-flex items-center gap-2
-                  bg-brand-blue hover:bg-brand-blue/90 active:scale-[0.98]
-                  text-white font-mono text-sm font-medium
-                  rounded-md px-6 py-3
-                  shadow-md shadow-brand-blue/20
-                  transition-all duration-200
-                  focus-visible:outline focus-visible:outline-2
-                  focus-visible:outline-offset-2 focus-visible:outline-brand-blue
-                "
-              >
-                Register on Unstop
-                <ExternalLink size={13} strokeWidth={2.5} aria-hidden="true" />
-              </a>
-
-              {/* Secondary text CTA */}
-              <a
-                href="#overview"
-                className="
-                  inline-flex items-center gap-1.5
-                  text-sm font-medium font-mono text-slate-600
-                  hover:text-brand-blue transition-colors duration-150
-                  focus-visible:outline focus-visible:outline-2
-                  focus-visible:outline-offset-2 focus-visible:outline-brand-blue
-                  rounded-sm px-1
-                  group
-                "
-              >
-                Explore Details
-                <ArrowRight
-                  size={13}
-                  strokeWidth={2.5}
-                  aria-hidden="true"
-                  className="transition-transform duration-150 group-hover:translate-x-0.5"
-                />
-              </a>
-            </motion.div>
-
-            {/* Stats row */}
-            <motion.div variants={resolvedChild}>
-              {/* Hairline divider */}
-              <div className="h-px bg-slate-100 mb-6" aria-hidden="true" />
-              <div
-                className="grid grid-cols-4 gap-4"
-                role="list"
-                aria-label="Contest statistics"
-              >
-                {CONTEST_META.stats.map((stat) => (
-                  <div key={stat.label} role="listitem">
-                    <StatPill value={stat.value} label={stat.label} />
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+              National Coding Championship · {CONTEST_EDITION}
+            </span>
           </motion.div>
 
-          {/* ── Right column: video panel ── */}
+          {/* ── Logo lockup above title ── */}
           <motion.div
-            variants={shouldReduceMotion ? {} : fadeIn}
-            initial="hidden"
-            animate="visible"
-            className="w-full"
+            className="flex justify-center mb-4"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            <VideoPanel />
+            <Image
+              src="/assets/logo.png"
+              alt="CodeRush"
+              width={80}
+              height={80}
+              className="h-16 w-auto object-contain drop-shadow-[0_0_24px_rgba(249,115,22,0.6)]"
+              priority
+            />
+          </motion.div>
 
-            {/* Inline contest info card beneath video */}
-            <motion.div
-              variants={shouldReduceMotion ? {} : { ...fadeUp, visible: { ...fadeUp.visible, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.55 } } }}
-              initial="hidden"
-              animate="visible"
+          {/* ── Giant split title ── */}
+          <div className="flex flex-col items-center" style={{ perspective: "800px" }}>
+            {HERO_TITLE_LINES.map((line, lineIdx) => (
+              <motion.div
+                key={line}
+                className="flex overflow-hidden"
+                variants={shouldReduceMotion ? {} : titleContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                {line.split("").map((char, charIdx) => (
+                  <motion.span
+                    key={`${lineIdx}-${charIdx}`}
+                    variants={shouldReduceMotion ? {} : letterVariant}
+                    className="
+                      font-sans font-black
+                      text-[clamp(72px,14vw,180px)]
+                      leading-none tracking-tighter
+                      select-none
+                    "
+                    style={{
+                      // Each letter gets a subtle flame-gradient colour split:
+                      // "CODE" is pure white; "RUSH" picks up a warm orange tint
+                      color: lineIdx === 0 ? "#FFFFFF" : "#FFFFFF",
+                      textShadow:
+                        lineIdx === 1
+                          ? "0 0 80px rgba(249,115,22,0.5), 0 0 160px rgba(220,38,38,0.25)"
+                          : "0 0 60px rgba(255,255,255,0.15)",
+                      display: "inline-block",
+                    }}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* ── Four brand-colour bars — animated in sequence under title ── */}
+          <motion.div
+            className="flex justify-center gap-2 mt-5 mb-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.4, duration: 0.4 }}
+          >
+            {[
+              { color: "bg-brand-blue",   delay: 1.5  },
+              { color: "bg-brand-yellow", delay: 1.65 },
+              { color: "bg-brand-green",  delay: 1.8  },
+              { color: "bg-brand-red",    delay: 1.95 },
+            ].map(({ color, delay }) => (
+              <motion.div
+                key={color}
+                className={`h-[3px] rounded-full ${color}`}
+                initial={{ width: 0 }}
+                animate={{ width: 56 }}
+                transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+              />
+            ))}
+          </motion.div>
+
+          {/* ── Tagline ── */}
+          <motion.p
+            className="
+              text-center font-sans text-base sm:text-lg
+              text-white/65 max-w-lg mx-auto px-6
+              leading-relaxed mb-10
+            "
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
+            A high-stakes programming contest built for engineers who think in edge cases.
+            Rank on a live leaderboard. Compete for{" "}
+            <span className="text-brand-yellow font-semibold">₹10,00,000+</span> in prizes.
+          </motion.p>
+
+          {/* ── Date + venue meta ── */}
+          <motion.div
+            className="flex flex-wrap justify-center items-center gap-x-5 gap-y-2 mb-10 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.05, duration: 0.5 }}
+          >
+            <span className="font-mono text-[11px] uppercase tracking-widest text-white/50">
+              {CONTEST_DATES}
+            </span>
+            <span className="text-white/20 font-mono" aria-hidden="true">·</span>
+            <span className="font-mono text-[11px] uppercase tracking-widest text-white/50">
+              {CONTEST_VENUE}
+            </span>
+          </motion.div>
+
+          {/* ── CTA buttons ── */}
+          <motion.div
+            className="flex flex-wrap justify-center items-center gap-4 mb-14 px-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.15, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {/* Primary */}
+            <a
+              href={UNSTOP_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
               className="
-                mt-4 border border-slate-200 rounded-xl
-                px-5 py-4 bg-slate-50
-                grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4
+                inline-flex items-center gap-2
+                bg-brand-blue hover:bg-brand-blue/90
+                active:scale-[0.97]
+                text-white font-mono text-sm font-medium
+                rounded-md px-7 py-3.5
+                shadow-lg shadow-brand-blue/30
+                transition-all duration-200
+                focus-visible:outline focus-visible:outline-2
+                focus-visible:outline-offset-2 focus-visible:outline-white
+                group
+              "
+            >
+              Register on Unstop
+              <ExternalLink
+                size={13}
+                strokeWidth={2.5}
+                aria-hidden="true"
+                className="transition-transform duration-150 group-hover:translate-x-0.5"
+              />
+            </a>
+
+            {/* Secondary — frosted glass */}
+            <a
+              href="#about"
+              className="
+                inline-flex items-center gap-2
+                bg-white/10 hover:bg-white/18
+                backdrop-blur-sm
+                border border-white/20 hover:border-white/35
+                text-white font-mono text-sm
+                rounded-md px-7 py-3.5
+                transition-all duration-200
+                focus-visible:outline focus-visible:outline-2
+                focus-visible:outline-offset-2 focus-visible:outline-white
+                group
+              "
+            >
+              Explore Details
+              <ArrowRight
+                size={13}
+                strokeWidth={2.5}
+                aria-hidden="true"
+                className="transition-transform duration-150 group-hover:translate-x-0.5"
+              />
+            </a>
+          </motion.div>
+
+          {/* ── Stats strip — frosted glass pill ── */}
+          <motion.div
+            className="flex justify-center px-4 mb-auto"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div
+              className="
+                inline-grid grid-cols-2 sm:grid-cols-4
+                gap-px
+                rounded-2xl overflow-hidden
+                border border-white/10
+                bg-white/[0.06] backdrop-blur-md
+              "
+              role="list"
+              aria-label="Contest statistics"
+            >
+              {STATS.map((stat, i) => (
+                <div
+                  key={stat.label}
+                  role="listitem"
+                  className={`
+                    flex flex-col items-center gap-1 px-8 py-5
+                    ${i < STATS.length - 1 ? "border-r border-white/10 last:border-r-0" : ""}
+                    ${i === 1 ? "border-r-0 sm:border-r border-white/10" : ""}
+                  `}
+                >
+                  <AnimatedStat value={stat.value} label={stat.label} />
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* ── Quick facts bar — bottom frosted strip ── */}
+          <motion.div
+            className="mt-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.55, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div
+              className="
+                mx-4 mb-16 sm:mx-auto sm:max-w-3xl
+                border border-white/10
+                bg-white/[0.04] backdrop-blur-md
+                rounded-2xl
+                px-6 py-4
+                grid grid-cols-2 sm:grid-cols-4 gap-4
               "
               aria-label="Quick contest details"
             >
-              {[
-                { label: "Format", value: "Individual + Team (2–4)" },
-                { label: "Rounds", value: "Qualifier · Semi · Final" },
-                { label: "Platform", value: "Unstop + Custom Judge" },
-              ].map((item) => (
-                <div key={item.label} className="flex flex-col gap-0.5">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-brand-blue">
-                    {item.label}
+              {QUICK_FACTS.map((fact) => (
+                <div key={fact.label} className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-white/35">
+                    {fact.label}
                   </span>
-                  <span className="font-sans text-xs font-medium text-slate-700 leading-snug">
-                    {item.value}
+                  <span className="font-sans text-xs font-medium text-white/80 leading-snug">
+                    {fact.value}
                   </span>
                 </div>
               ))}
-            </motion.div>
+            </div>
           </motion.div>
 
         </div>
-      </div>
-    </section>
+
+        {/* ── Scroll caret ── */}
+        {!shouldReduceMotion && <ScrollCaret />}
+
+        {/* ── Four-bar bottom accent (brand identity strip) ── */}
+        <FourBarAccent />
+
+      </section>
+    </>
   );
 }

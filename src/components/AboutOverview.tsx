@@ -1,222 +1,313 @@
 "use client";
 
+import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
-import { motion, useReducedMotion, Variants } from "framer-motion";
+import { motion, useReducedMotion, useInView, Variants } from "framer-motion";
 import {
   Code2,
   Trophy,
   BarChart2,
   Globe,
-  Cpu,
+  Terminal,
+  Flame,
   Users,
+  Cpu,
 } from "lucide-react";
+import { CONTEST_EDITION } from "@/lib/constants";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Content data
-// All copy lives here — JSX stays purely structural.
+// Content
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ABOUT_CONTENT = {
-  eyebrow: "About CodeRush",
-  heading: "Built by engineers,\nfor engineers.",
-  paragraphs: [
-    "CodeRush is the flagship competitive programming contest organised by CPBYTE — the official coding community of KIET Group of Institutions, Ghaziabad. Since its inception, CodeRush has grown into one of North India's most anticipated annual contests, drawing participants from over 200 colleges across the country.",
-    "The contest is designed to push participants beyond textbook algorithms. Every problem set is crafted by a core committee of competitive programmers with national-level credentials, ensuring a balanced but unforgiving difficulty curve — from warm-up implementation tasks to multi-concept hard problems that reward creative thinking.",
-    "Whether you are grinding your first contest or chasing a national rank, CodeRush gives you a real arena: strict time limits, live rankings, anti-cheat judging, and finals held on campus with cash prizes on the line.",
-  ],
-  meta: [
-    { label: "Organised by", value: "CPBYTE — KIET" },
-    { label: "Edition",       value: "Season IV · 2025" },
-    { label: "Mode",          value: "Online + Offline Finals" },
-    { label: "Eligibility",   value: "UG / PG Students (All India)" },
-  ],
-} as const;
+const ABOUT_PARAGRAPHS = [
+  "CodeRush is the flagship competitive programming contest organised by CPBYTE — the official coding community of KIET Group of Institutions, Ghaziabad. One of North India's most anticipated annual contests, drawing participants from over 200 colleges.",
+  "Every problem set is crafted by a core committee of competitive programmers with national-level credentials — from warm-up implementation tasks to multi-concept hard problems that reward creative thinking under pressure.",
+  "A real arena: strict time limits, live rankings, anti-cheat judging, and on-campus finals with ₹10L+ in prizes on the line.",
+] as const;
 
-// BUG FIX: accent colours stored as explicit bg-* classes so no string
-// manipulation is needed at render time. Previously the component tried to
-// derive bg-brand-yellow from "border-brand-yellow" via .replace() which
-// silently produced an invalid class name and left accent bars colourless.
-//
-// BUG FIX: opacity modifier changed from /8 → /10 throughout.
-// Tailwind v4 only resolves standard opacity steps; /8 produced no output.
-//
-// LAYOUT FIX: card order is wide → narrow → narrow → wide so that CSS grid
-// auto-placement produces the intended rhythm:
-//   Row 1: [02 leaderboard ────── col-span-2 ──────]
-//   Row 2: [01 problems · 1col] [04 bracket · 1col]
-//   Row 3: [03 prizes ───────── col-span-2 ──────]
-// This gives a visually bracketed structure: wide / split / wide.
+const ABOUT_META = [
+  { label: "Organised by", value: "CPBYTE — KIET"             },
+  { label: "Edition",       value: CONTEST_EDITION              },
+  { label: "Mode",          value: "Online + Offline Finals"   },
+  { label: "Eligibility",   value: "UG / PG · All India"       },
+] as const;
+
+// Keywords that scroll horizontally across the section — competitive
+// programming concepts that establish domain credibility immediately.
+const KEYWORDS = [
+  "Dynamic Programming", "Graph Theory", "Segment Trees",
+  "Binary Search", "Greedy Algorithms", "Combinatorics",
+  "ICPC-Style Rules", "Live Leaderboard", "Anti-Cheat Judge",
+  "Cash Prizes", "National Ranking", "200+ Colleges",
+] as const;
+
+// Simulated code snippet shown in the floating terminal card.
+// Deliberately looks like a competitive programming solution stub.
+const CODE_LINES = [
+  { code: "int main() {",                    color: "#e2e8f0" },
+  { code: "  // CodeRush Season IV",         color: "#64748b" },
+  { code: "  int n, q;",                     color: "#e2e8f0" },
+  { code: "  cin >> n >> q;",                color: "#e2e8f0" },
+  { code: "  vector<int> a(n);",             color: "#93c5fd" },
+  { code: "  // build segment tree",         color: "#64748b" },
+  { code: "  SegTree st(a);",                color: "#86efac" },
+  { code: "  while (q--) {",                 color: "#e2e8f0" },
+  { code: "    int l, r; cin>>l>>r;",        color: "#e2e8f0" },
+  { code: "    cout << st.query(l,r);",      color: "#fde68a" },
+  { code: "  }",                             color: "#e2e8f0" },
+  { code: "  return 0;",                     color: "#e2e8f0" },
+  { code: "}",                               color: "#e2e8f0" },
+] as const;
+
 const BENTO_CARDS = [
   {
     id: "leaderboard",
     ghost: "01",
     accentBar: "bg-brand-green",
-    iconBg: "bg-brand-green/10",
-    iconColor: "text-brand-green",
+    accentGlow: "rgba(22,163,74,0.15)",
+    accentBorder: "rgba(22,163,74,0.3)",
+    accentText: "text-brand-green",
     Icon: BarChart2,
     metric: "<200ms",
     metricLabel: "leaderboard refresh",
     title: "Rankings via Live Leaderboard",
     description:
-      "A real-time ranked scoreboard updates continuously during the contest. Penalty time, partial scoring, and tiebreakers mirror ICPC-style rules — no ambiguity, no delays.",
+      "Real-time ranked scoreboard updates continuously. Penalty time, partial scoring, and tiebreakers mirror ICPC-style rules — no ambiguity, no delays.",
     wide: true,
   },
   {
     id: "problems",
     ghost: "02",
     accentBar: "bg-brand-yellow",
-    iconBg: "bg-brand-yellow/10",
-    iconColor: "text-brand-yellow",
+    accentGlow: "rgba(245,158,11,0.15)",
+    accentBorder: "rgba(245,158,11,0.3)",
+    accentText: "text-brand-yellow",
     Icon: Code2,
     metric: "10+",
     metricLabel: "problems per round",
     title: "Complex DSA Problem Sets",
     description:
-      "Every round features problems spanning graphs, dynamic programming, segment trees, and combinatorics — curated to separate ranks, not pad solve counts.",
+      "Problems spanning graphs, DP, segment trees, and combinatorics — curated to separate ranks, not pad solve counts.",
     wide: false,
   },
   {
     id: "bracket",
     ghost: "03",
     accentBar: "bg-brand-red",
-    iconBg: "bg-brand-red/10",
-    iconColor: "text-brand-red",
+    accentGlow: "rgba(220,38,38,0.15)",
+    accentBorder: "rgba(220,38,38,0.3)",
+    accentText: "text-brand-red",
     Icon: Globe,
     metric: "200+",
     metricLabel: "colleges competing",
     title: "Global Bracket Competition",
     description:
-      "Qualifier rounds are open to all. Top performers advance to a live on-campus final at KIET, competing in a bracketed elimination format.",
+      "Open qualifiers, then live on-campus elimination brackets at KIET. Compete, advance, and claim your rank.",
     wide: false,
   },
   {
     id: "prizes",
     ghost: "04",
     accentBar: "bg-brand-blue",
-    iconBg: "bg-brand-blue/10",
-    iconColor: "text-brand-blue",
+    accentGlow: "rgba(29,78,216,0.15)",
+    accentBorder: "rgba(29,78,216,0.3)",
+    accentText: "text-brand-blue",
     Icon: Trophy,
     metric: "₹10L+",
     metricLabel: "total prize pool",
     title: "Cash Prizes and Recognition",
     description:
-      "Top finishers take home cash awards, certificates, and sponsor swag. Shortlisted participants receive direct referrals to hiring partners.",
+      "Top finishers take home cash, certificates, and sponsor swag. Shortlisted participants get direct referrals to hiring partners.",
     wide: true,
   },
 ] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Animation variants
+// useCountUp — animates 0 → target when element enters viewport
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Fade-up variant used for About section copy blocks.
-// `custom` receives a delay in seconds so each block staggers independently
-// without needing a parent container variant.
-const fadeUpVariant: Variants = {
-  hidden: { opacity: 0, y: 28 },
-  visible: (delaySeconds: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.22, 1, 0.36, 1],
-      delay: delaySeconds,
-    },
-  }),
-};
+function useCountUp(target: string, duration = 1400) {
+  const [display, setDisplay] = useState("0");
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  const rafRef = useRef<number | null>(null);
 
-// Bento card variant — `custom` receives the card array index.
-// Delay is index × 80ms so the four cards cascade as a single wave.
-const bentoCardVariant: Variants = {
-  hidden: { opacity: 0, y: 32, scale: 0.98 },
-  visible: (index: number) => ({
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      duration: 0.55,
-      ease: [0.22, 1, 0.36, 1],
-      delay: index * 0.08,
-    },
-  }),
-};
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStarted(true); },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-// Image panel slides in from the right while copy fades up from the left.
-const imageSlideVariant: Variants = {
-  hidden: { opacity: 0, x: 32 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.7,
-      ease: [0.22, 1, 0.36, 1],
-      delay: 0.1,
-    },
-  },
-};
+  useEffect(() => {
+    if (!started) return;
+    const numericStr = target.replace(/[^0-9.]/g, "");
+    const num = parseFloat(numericStr);
+    if (isNaN(num)) { setDisplay(target); return; }
+
+    const hasComma = target.includes(",");
+    const prefix   = target.startsWith("₹") ? "₹" : "";
+    const suffix   = target.replace(/[₹0-9,.]/g, "").trim();
+    const startTime = performance.now();
+
+    function tick(now: number) {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased    = 1 - Math.pow(1 - progress, 3);
+      const current  = Math.floor(eased * num);
+      let fmt = current.toString();
+      if (hasComma && current >= 1000) fmt = current.toLocaleString("en-IN");
+      setDisplay(`${prefix}${fmt}${suffix}`);
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+      else setDisplay(target);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [started, target, duration]);
+
+  return { display: started ? display : "0", ref };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SectionDivider
-// A four-colour bar using the brand accent strip from the logo.
-// Sits between the About and Overview sections so the transition is deliberate
-// rather than an invisible bg-white → bg-slate-50 step.
+// TypewriterLine — types a single string character by character
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SectionDivider() {
+function TypewriterLine({
+  text,
+  color,
+  delay,
+  started,
+}: {
+  text: string;
+  color: string;
+  delay: number;
+  started: boolean;
+}) {
+  const [visible, setVisible] = useState("");
+
+  useEffect(() => {
+    if (!started) return;
+    let i = 0;
+    const timer = setTimeout(() => {
+      const interval = setInterval(() => {
+        i++;
+        setVisible(text.slice(0, i));
+        if (i >= text.length) clearInterval(interval);
+      }, 28);
+      return () => clearInterval(interval);
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [started, text, delay]);
+
   return (
-    <div className="flex w-full h-[3px]" aria-hidden="true">
-      <div className="flex-1 bg-brand-blue" />
-      <div className="flex-1 bg-brand-yellow" />
-      <div className="flex-1 bg-brand-green" />
-      <div className="flex-1 bg-brand-red" />
+    <div className="font-mono text-[11px] leading-5 whitespace-pre" style={{ color }}>
+      {visible}
+      {visible.length < text.length && started && (
+        <span className="inline-block w-[2px] h-[11px] bg-brand-blue align-middle animate-pulse ml-px" />
+      )}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SectionHeading — reused by both About and Overview
+// TerminalCard — floating code window on the right column
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface SectionHeadingProps {
-  eyebrow: string;
-  heading: string;
-  centered?: boolean;
+function TerminalCard({ reducedMotion }: { reducedMotion: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 32, rotateX: 6 }}
+      whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
+      style={{ perspective: "800px" }}
+      className="relative"
+    >
+      {/* Glow behind terminal */}
+      <div
+        className="absolute -inset-4 rounded-3xl blur-2xl opacity-40 pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(29,78,216,0.3) 0%, transparent 70%)" }}
+        aria-hidden="true"
+      />
+
+      <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-[#0D1117]">
+        {/* Chrome bar */}
+        <div className="flex items-center gap-2 px-4 py-3 bg-[#161B22] border-b border-white/5">
+          <span className="w-3 h-3 rounded-full bg-red-500/80" aria-hidden="true" />
+          <span className="w-3 h-3 rounded-full bg-yellow-500/80" aria-hidden="true" />
+          <span className="w-3 h-3 rounded-full bg-green-500/80" aria-hidden="true" />
+          <div className="ml-2 flex items-center gap-1.5">
+            <Terminal size={10} className="text-slate-500" aria-hidden="true" />
+            <span className="font-mono text-[10px] text-slate-500 tracking-wide">
+              solution.cpp — CodeRush IV
+            </span>
+          </div>
+        </div>
+
+        {/* Code body */}
+        <div className="p-4 space-y-0.5">
+          {CODE_LINES.map((line, i) => (
+            <TypewriterLine
+              key={i}
+              text={line.code}
+              color={line.color}
+              delay={reducedMotion ? 0 : i * 120}
+              started={reducedMotion ? true : inView}
+            />
+          ))}
+        </div>
+
+        {/* Status bar */}
+        <div className="flex items-center justify-between px-4 py-2 bg-brand-blue/80 border-t border-brand-blue/50">
+          <span className="font-mono text-[9px] text-white/70 uppercase tracking-widest">
+            C++ · UTF-8 · Ln 13
+          </span>
+          <span className="font-mono text-[9px] text-white/70 uppercase tracking-widest flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" aria-hidden="true" />
+            Judge: Online
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
-function SectionHeading({ eyebrow, heading, centered = false }: SectionHeadingProps) {
-  return (
-    <div className={centered ? "text-center" : ""}>
-      {/* Eyebrow pill — font-mono uppercase tracking, brand-blue, matches Hero */}
-      <span
-        className="
-          inline-flex items-center gap-2
-          font-mono text-xs uppercase tracking-widest text-brand-blue
-          border border-brand-blue/20 bg-brand-blue/5
-          px-3 py-1.5 rounded-full mb-4
-        "
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full bg-brand-blue inline-block"
-          aria-hidden="true"
-        />
-        {eyebrow}
-      </span>
+// ─────────────────────────────────────────────────────────────────────────────
+// KeywordTape — infinite horizontal scroll of domain keywords
+// ─────────────────────────────────────────────────────────────────────────────
 
-      {/* Heading — font-sans Extra Bold, brand-dark, tight leading */}
-      <h2
-        className="
-          font-sans text-3xl sm:text-4xl font-bold tracking-tight
-          text-brand-dark leading-[1.1] whitespace-pre-line
-        "
-      >
-        {heading}
-      </h2>
+function KeywordTape() {
+  const doubled = [...KEYWORDS, ...KEYWORDS];
+  return (
+    <div className="relative overflow-hidden py-4 border-y border-white/5" aria-hidden="true">
+      {/* Left fade */}
+      <div className="absolute left-0 top-0 bottom-0 w-16 z-10 bg-gradient-to-r from-[#0A0F1A] to-transparent pointer-events-none" />
+      {/* Right fade */}
+      <div className="absolute right-0 top-0 bottom-0 w-16 z-10 bg-gradient-to-l from-[#0A0F1A] to-transparent pointer-events-none" />
+      <div className="flex animate-marquee whitespace-nowrap">
+        {doubled.map((keyword, i) => (
+          <span key={i} className="inline-flex items-center gap-3 mx-4">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-white/30">
+              {keyword}
+            </span>
+            <span className="w-1 h-1 rounded-full bg-brand-blue/40 flex-shrink-0" />
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AboutSection
+// AboutSection — dark, editorial, premium
 // ─────────────────────────────────────────────────────────────────────────────
 
 function AboutSection({ reducedMotion }: { reducedMotion: boolean }) {
@@ -224,188 +315,247 @@ function AboutSection({ reducedMotion }: { reducedMotion: boolean }) {
     <section
       id="about"
       aria-label="About CodeRush"
-      className="relative bg-white py-20 lg:py-28 overflow-hidden"
+      className="relative overflow-hidden"
+      style={{ background: "#0A0F1A" }}
     >
-      {/* Quiet radial dot grid — same visual language as Hero section */}
+      {/* ── Background texture: subtle noise + grid lines ── */}
       <div
-        className="
-          pointer-events-none absolute inset-0
-          bg-[radial-gradient(circle,#e2e8f0_1px,transparent_1px)]
-          bg-[size:32px_32px] opacity-40
-        "
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right,#ffffff 1px,transparent 1px), linear-gradient(to bottom,#ffffff 1px,transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20 items-center">
+      {/* ── Ambient glow — top-right brand-blue ── */}
+      <div
+        className="pointer-events-none absolute -top-48 -right-48 w-[700px] h-[700px] rounded-full z-0"
+        style={{ background: "radial-gradient(circle, rgba(29,78,216,0.12) 0%, transparent 65%)" }}
+        aria-hidden="true"
+      />
 
-          {/* ── Left: copy column ── */}
-          <div className="flex flex-col gap-6">
+      {/* ── Ambient glow — bottom-left brand-red ── */}
+      <div
+        className="pointer-events-none absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full z-0"
+        style={{ background: "radial-gradient(circle, rgba(220,38,38,0.08) 0%, transparent 65%)" }}
+        aria-hidden="true"
+      />
 
-            {/* Section heading */}
+      {/* ── Keyword tape — top ── */}
+      <KeywordTape />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-start">
+
+          {/* ── Left: editorial copy column ── */}
+          <div className="flex flex-col gap-8">
+
+            {/* Eyebrow */}
             <motion.div
-              variants={reducedMotion ? {} : fadeUpVariant}
-              custom={0}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              className="flex items-center gap-3"
             >
-              <SectionHeading
-                eyebrow={ABOUT_CONTENT.eyebrow}
-                heading={ABOUT_CONTENT.heading}
-              />
+              <div className="flex gap-1" aria-hidden="true">
+                <span className="w-5 h-[3px] rounded-full bg-brand-blue" />
+                <span className="w-5 h-[3px] rounded-full bg-brand-yellow" />
+                <span className="w-5 h-[3px] rounded-full bg-brand-green" />
+                <span className="w-5 h-[3px] rounded-full bg-brand-red" />
+              </div>
+              <span className="font-mono text-[11px] uppercase tracking-widest text-white/40">
+                About CodeRush
+              </span>
             </motion.div>
 
-            {/* Body paragraphs — staggered at 100ms intervals */}
-            {ABOUT_CONTENT.paragraphs.map((paragraph, paragraphIndex) => (
-              <motion.p
-                key={paragraphIndex}
-                variants={reducedMotion ? {} : fadeUpVariant}
-                custom={0.1 + paragraphIndex * 0.1}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.2 }}
-                className="font-sans text-[15px] leading-relaxed text-slate-500 max-w-[520px]"
-              >
-                {paragraph}
-              </motion.p>
-            ))}
-
-            {/* Meta key/value grid */}
+            {/* Large editorial heading */}
             <motion.div
-              variants={reducedMotion ? {} : fadeUpVariant}
-              custom={0.4}
-              initial="hidden"
-              whileInView="visible"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              className="mt-2"
+              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
             >
-              {/* Hairline rule */}
-              <div className="h-px bg-slate-100 mb-5" aria-hidden="true" />
+              <h2 className="font-sans font-black text-4xl sm:text-5xl lg:text-6xl leading-[1.0] tracking-tight text-white">
+                Built by{" "}
+                <span
+                  className="relative inline-block"
+                  style={{
+                    WebkitTextStroke: "1px rgba(29,78,216,0.6)",
+                    color: "transparent",
+                    textShadow: "0 0 40px rgba(29,78,216,0.4)",
+                  }}
+                >
+                  engineers,
+                </span>
+                <br />
+                <span className="text-white">for </span>
+                <span
+                  style={{
+                    background: "linear-gradient(135deg, #FDBA74 0%, #F97316 40%, #DC2626 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  engineers.
+                </span>
+              </h2>
+            </motion.div>
 
-              <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
-                {ABOUT_CONTENT.meta.map((metaItem) => (
-                  <div key={metaItem.label} className="flex flex-col gap-0.5">
-                    <dt className="font-mono text-[10px] uppercase tracking-widest text-brand-blue">
-                      {metaItem.label}
+            {/* Paragraphs */}
+            <div className="flex flex-col gap-5">
+              {ABOUT_PARAGRAPHS.map((para, i) => (
+                <motion.p
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.1 + i * 0.08 }}
+                  className="font-sans text-[15px] leading-relaxed text-white/50"
+                >
+                  {para}
+                </motion.p>
+              ))}
+            </div>
+
+            {/* Meta grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+            >
+              <div className="h-px bg-white/5 mb-6" aria-hidden="true" />
+              <dl className="grid grid-cols-2 gap-x-8 gap-y-5">
+                {ABOUT_META.map((item) => (
+                  <div key={item.label} className="flex flex-col gap-1">
+                    <dt className="font-mono text-[9px] uppercase tracking-widest text-white/25">
+                      {item.label}
                     </dt>
-                    <dd className="font-sans text-sm font-semibold text-slate-700">
-                      {metaItem.value}
+                    <dd className="font-sans text-sm font-semibold text-white/80">
+                      {item.value}
                     </dd>
                   </div>
                 ))}
               </dl>
             </motion.div>
 
-            {/* Community callout card */}
+            {/* Community callout */}
             <motion.div
-              variants={reducedMotion ? {} : fadeUpVariant}
-              custom={0.5}
-              initial="hidden"
-              whileInView="visible"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              className="
-                mt-1 flex items-start gap-3
-                border border-slate-200 rounded-xl px-4 py-4
-                bg-slate-50
-              "
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.38 }}
+              className="flex items-start gap-4 p-4 rounded-xl border border-white/8 bg-white/[0.03]"
             >
-              <div
-                className="
-                  flex-shrink-0 w-8 h-8 rounded-lg
-                  bg-brand-blue/10 flex items-center justify-center
-                "
-                aria-hidden="true"
-              >
+              <div className="w-9 h-9 rounded-lg bg-brand-blue/15 border border-brand-blue/20 flex items-center justify-center flex-shrink-0" aria-hidden="true">
                 <Users size={15} className="text-brand-blue" />
               </div>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-brand-blue mb-0.5">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-brand-blue mb-1">
                   Community-Driven
                 </p>
-                <p className="font-sans text-xs text-slate-500 leading-relaxed">
+                <p className="font-sans text-xs text-white/40 leading-relaxed">
                   CPBYTE runs free weekly practice contests, editorial sessions, and
-                  mentorship circles year-round — CodeRush is the culmination of that
-                  entire calendar.
+                  mentorship circles year-round — CodeRush is the culmination of that entire calendar.
                 </p>
               </div>
             </motion.div>
           </div>
 
-          {/* ── Right: image column ── */}
-          <motion.div
-            variants={reducedMotion ? {} : imageSlideVariant}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            className="relative w-full"
-          >
-            {/* Offset decorative frame — sits 14px behind and below the image,
-                giving depth without box-shadow and without a third DOM element */}
-            <div
-              className="
-                absolute top-4 left-4 w-full h-full
-                border border-brand-blue/20 rounded-2xl
-              "
-              aria-hidden="true"
-            />
+          {/* ── Right: image + terminal card ── */}
+          <div className="flex flex-col gap-6">
 
-            {/* Primary image frame */}
-            <div
-              className="
-                relative z-10 rounded-2xl overflow-hidden
-                border border-slate-200 bg-slate-100
-              "
+            {/* Image with angled clip + caption */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 24 }}
+              whileInView={{ opacity: 1, scale: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+              className="relative"
             >
-              <Image
-                src="/assets/about-contest.jpg"
-                alt="Participants at a previous CodeRush finals — students at laptops inside KIET's contest hall"
-                width={720}
-                height={480}
-                quality={90}
-                priority={false}
-                className="w-full h-full object-cover block"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
-
-              {/* Caption bar — glassmorphism overlay at the bottom of the image */}
+              {/* Decorative glow frame */}
               <div
-                className="
-                  absolute bottom-0 left-0 right-0
-                  bg-white/90 backdrop-blur-sm
-                  border-t border-slate-200/80
-                  px-4 py-3 flex items-center justify-between
-                "
+                className="absolute -inset-[1px] rounded-3xl"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(29,78,216,0.4) 0%, rgba(220,38,38,0.2) 50%, rgba(245,158,11,0.3) 100%)",
+                  padding: "1px",
+                }}
+                aria-hidden="true"
               >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="
-                      w-6 h-6 rounded-md bg-brand-blue/10
-                      flex items-center justify-center flex-shrink-0
-                    "
-                    aria-hidden="true"
-                  >
-                    <Cpu size={12} className="text-brand-blue" />
+                <div className="w-full h-full rounded-3xl bg-[#0A0F1A]" />
+              </div>
+
+              {/* Image */}
+              <div className="relative rounded-3xl overflow-hidden border border-white/10">
+                <Image
+                  src="/assets/about-contest.jpg"
+                  alt="Participants at CodeRush finals at KIET campus"
+                  width={720}
+                  height={460}
+                  quality={90}
+                  priority={false}
+                  className="w-full object-cover block"
+                  style={{ filter: "brightness(0.85) saturate(0.9)" }}
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+
+                {/* Gradient overlay at bottom */}
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(to top, rgba(10,15,26,0.85) 0%, transparent 55%)" }}
+                  aria-hidden="true"
+                />
+
+                {/* Caption overlay */}
+                <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex items-end justify-between">
+                  <div>
+                    <p className="font-mono text-[9px] uppercase tracking-widest text-white/40 mb-0.5">
+                      CodeRush Finals · KIET Campus
+                    </p>
+                    <p className="font-sans text-sm font-semibold text-white/90">
+                      Season III Highlights
+                    </p>
                   </div>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-slate-600">
-                    CodeRush Finals · KIET Campus
+                  <div className="flex items-center gap-1.5">
+                    <Flame size={12} className="text-brand-yellow" aria-hidden="true" />
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-brand-yellow">
+                      {CONTEST_EDITION}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Live badge */}
+                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm border border-white/10 rounded-full px-3 py-1.5">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-red" />
+                  </span>
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-white/70">
+                    Season IV Registrations Open
                   </span>
                 </div>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-brand-blue">
-                  Season III
-                </span>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
 
+            {/* Terminal code card */}
+            <TerminalCard reducedMotion={reducedMotion} />
+          </div>
         </div>
       </div>
+
+      {/* ── Keyword tape — bottom ── */}
+      <KeywordTape />
     </section>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BentoCard
+// BentoCard — dark themed with glowing hover
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface BentoCardProps {
@@ -416,92 +566,101 @@ interface BentoCardProps {
 
 function BentoCard({ card, index, reducedMotion }: BentoCardProps) {
   const IconComponent = card.Icon;
+  const [hovered, setHovered] = useState(false);
+  const { display, ref: countRef } = useCountUp(card.metric, 1400);
 
   return (
     <motion.article
-      variants={reducedMotion ? {} : bentoCardVariant}
-      custom={index}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.2 }}
+      initial={{ opacity: 0, y: 36, scale: 0.97 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{
+        duration: 0.6,
+        ease: [0.22, 1, 0.36, 1],
+        delay: index * 0.09,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={`
         relative flex flex-col justify-between
-        rounded-2xl border border-slate-200
-        overflow-hidden bg-white
-        p-6 sm:p-7
+        rounded-2xl overflow-hidden
+        p-6 sm:p-7 cursor-default
+        transition-all duration-300
         ${card.wide ? "md:col-span-2" : "md:col-span-1"}
-        hover:border-slate-300 hover:shadow-sm
-        transition-all duration-200
       `}
+      style={{
+        background: hovered
+          ? `linear-gradient(135deg, #111827 0%, ${card.accentGlow.replace("0.15", "0.08")} 100%)`
+          : "#0D1424",
+        border: `1px solid ${hovered ? card.accentBorder : "rgba(255,255,255,0.06)"}`,
+        boxShadow: hovered
+          ? `0 0 40px ${card.accentGlow}, 0 0 0 1px ${card.accentBorder}`
+          : "none",
+        transition: "all 0.3s ease",
+      }}
       aria-label={card.title}
     >
-      {/* Accent top border — explicit bg-* class stored in data, no runtime
-          string manipulation. Previously derived via .replace() which silently
-          failed and left all accent bars invisible. */}
+      {/* Accent top bar */}
       <div
-        className={`absolute top-0 left-0 right-0 h-[3px] ${card.accentBar}`}
+        className={`absolute top-0 left-0 right-0 h-[2px] ${card.accentBar}`}
+        style={{ opacity: hovered ? 1 : 0.6, transition: "opacity 0.3s" }}
         aria-hidden="true"
       />
 
-      {/* Ghost numeral — structural because each card is a discrete metric.
-          Massive font size makes it an abstract form, not a label. */}
+      {/* Ghost numeral */}
       <span
-        className="
-          pointer-events-none select-none
-          absolute bottom-2 right-4
-          font-mono font-black text-[96px] leading-none
-          text-slate-900 opacity-[0.035]
-        "
+        className="pointer-events-none select-none absolute bottom-2 right-4 font-mono font-black text-[96px] leading-none"
+        style={{ color: "rgba(255,255,255,0.025)", transition: "color 0.3s" }}
         aria-hidden="true"
       >
         {card.ghost}
       </span>
 
-      {/* Card content sits above ghost numeral */}
+      {/* Card content */}
       <div className="relative z-10 flex flex-col gap-4 h-full">
 
-        {/* Top row: icon badge (left) + metric (right) */}
+        {/* Icon + metric */}
         <div className="flex items-start justify-between gap-4">
-
-          {/* Icon badge */}
           <div
-            className={`
-              w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
-              ${card.iconBg}
-            `}
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: card.accentGlow,
+              border: `1px solid ${card.accentBorder}`,
+            }}
             aria-hidden="true"
           >
-            <IconComponent size={18} className={card.iconColor} strokeWidth={1.75} />
+            <IconComponent size={18} className={card.accentText} strokeWidth={1.75} />
           </div>
 
-          {/* Metric + sublabel */}
           <div className="text-right">
-            <p className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-brand-dark leading-none">
-              {card.metric}
-            </p>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-slate-400 mt-1">
+            <span
+              ref={countRef}
+              className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white leading-none block"
+            >
+              {display}
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-white/30 mt-1 block">
               {card.metricLabel}
-            </p>
+            </span>
           </div>
         </div>
 
-        {/* Card title */}
-        <h3 className="font-sans text-base font-semibold text-brand-dark leading-snug">
+        {/* Title */}
+        <h3 className={`font-sans text-base font-semibold leading-snug transition-colors duration-300 ${hovered ? card.accentText : "text-white/80"}`}>
           {card.title}
         </h3>
 
         {/* Description */}
-        <p className="font-sans text-sm text-slate-500 leading-relaxed flex-1">
+        <p className="font-sans text-sm text-white/40 leading-relaxed flex-1">
           {card.description}
         </p>
-
       </div>
     </motion.article>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OverviewSection
+// OverviewSection — dark, matching About
 // ─────────────────────────────────────────────────────────────────────────────
 
 function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
@@ -509,71 +668,85 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
     <section
       id="overview"
       aria-label="Contest Overview"
-      className="relative bg-slate-50 py-20 lg:py-28 overflow-hidden"
+      className="relative overflow-hidden py-20 lg:py-28"
+      style={{ background: "#07090F" }}
     >
-      {/* Gradient wash softens the hard edge from the SectionDivider above */}
+      {/* Subtle grid texture */}
       <div
-        className="
-          pointer-events-none absolute top-0 left-0 right-0 h-24
-          bg-gradient-to-b from-white/60 to-transparent
-        "
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.025]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Top gradient blend from About's dark bg */}
+      <div
+        className="pointer-events-none absolute top-0 left-0 right-0 h-32 z-0"
+        style={{ background: "linear-gradient(to bottom, #0A0F1A, transparent)" }}
+        aria-hidden="true"
+      />
 
-        {/* Centered section heading */}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+        {/* Heading */}
         <motion.div
-          variants={reducedMotion ? {} : fadeUpVariant}
-          custom={0}
-          initial="hidden"
-          whileInView="visible"
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="text-center mb-12 lg:mb-16"
         >
-          <SectionHeading
-            eyebrow="What to Expect"
-            heading={"Everything a competitive\nprogrammer needs."}
-            centered
-          />
-          <p className="mt-4 font-sans text-[15px] text-slate-500 leading-relaxed max-w-xl mx-auto">
-            Four pillars that make CodeRush a complete contest experience — not
-            just another online round.
+          {/* Eyebrow */}
+          <div className="flex justify-center mb-4">
+            <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/30 border border-white/10 bg-white/[0.03] px-4 py-2 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-blue inline-block" aria-hidden="true" />
+              What to Expect
+            </span>
+          </div>
+
+          <h2 className="font-sans font-black text-3xl sm:text-4xl lg:text-5xl text-white leading-tight tracking-tight mb-4">
+            Everything a competitive<br />
+            <span
+              style={{
+                background: "linear-gradient(135deg, #93c5fd 0%, #1D4ED8 50%, #7c3aed 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              programmer needs.
+            </span>
+          </h2>
+
+          <p className="font-sans text-[15px] text-white/35 leading-relaxed max-w-lg mx-auto">
+            Four pillars that make CodeRush a complete contest experience — not just another online round.
           </p>
         </motion.div>
 
-        {/* Bento grid
-            Layout on md+ (2-col grid):
-              Row 1: [leaderboard ─────────── col-span-2 ────────────]
-              Row 2: [problems · col-span-1]  [bracket · col-span-1]
-              Row 3: [prizes ─────────────── col-span-2 ────────────]
-            This wide / split / wide cadence brackets the two narrow cards
-            and gives the grid a deliberate, non-generic rhythm. */}
+        {/* Bento grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-          {BENTO_CARDS.map((card, cardIndex) => (
-            <BentoCard
-              key={card.id}
-              card={card}
-              index={cardIndex}
-              reducedMotion={reducedMotion}
-            />
+          {BENTO_CARDS.map((card, i) => (
+            <BentoCard key={card.id} card={card} index={i} reducedMotion={reducedMotion} />
           ))}
         </div>
 
-        {/* Footer attestation line */}
-        <motion.p
-          variants={reducedMotion ? {} : fadeUpVariant}
-          custom={0.4}
-          initial="hidden"
-          whileInView="visible"
+        {/* Bottom attestation */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true, amount: 0.5 }}
-          className="
-            mt-10 text-center
-            font-mono text-[10px] uppercase tracking-widest text-slate-400
-          "
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="mt-10 flex justify-center items-center gap-3"
         >
-          All rounds judged on a custom online judge · Plagiarism detection enabled
-        </motion.p>
+          <span className="h-px w-12 bg-white/10" aria-hidden="true" />
+          <p className="font-mono text-[10px] uppercase tracking-widest text-white/20">
+            All rounds judged on a custom online judge · Plagiarism detection enabled
+          </p>
+          <span className="h-px w-12 bg-white/10" aria-hidden="true" />
+        </motion.div>
 
       </div>
     </section>
@@ -581,26 +754,31 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SectionDivider — four-colour brand strip between the two sections
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SectionDivider() {
+  return (
+    <div className="flex w-full h-[2px]" aria-hidden="true">
+      <div className="flex-1 bg-brand-blue" />
+      <div className="flex-1 bg-brand-yellow" />
+      <div className="flex-1 bg-brand-green" />
+      <div className="flex-1 bg-brand-red" />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Default export
-// Both sections are co-located to share useReducedMotion, variants, and the
-// SectionDivider without prop-drilling or a separate context provider.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AboutOverview() {
-  // Respect OS-level "prefers-reduced-motion". When true, all motion variants
-  // are swapped for empty objects ({}) so content renders at its final state
-  // with no animation — no layout shift, no timing issues.
   const shouldReduceMotion = useReducedMotion() ?? false;
 
   return (
     <>
       <AboutSection reducedMotion={shouldReduceMotion} />
-
-      {/* Four-colour divider echoes the brand accent strip from the logo,
-          making the section break a deliberate brand moment rather than
-          a hairline border the eye glosses over. */}
       <SectionDivider />
-
       <OverviewSection reducedMotion={shouldReduceMotion} />
     </>
   );
