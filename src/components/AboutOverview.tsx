@@ -527,207 +527,264 @@ function AboutSection({ reducedMotion }: { reducedMotion: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Overview inner widgets (light themed)
+// Overview card inner content — real contest information, no fake live data
+// Each card has a unique visual treatment that communicates real facts about
+// CodeRush through premium design rather than placeholder numbers.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LEADERBOARD_ROWS = [
-  { rank: 1, handle: "tourist",   score: "2840", delta: "+12" },
-  { rank: 2, handle: "Um_nik",    score: "2791", delta: "+8"  },
-  { rank: 3, handle: "Benq",      score: "2744", delta: "+5"  },
-  { rank: 4, handle: "ecnerwala", score: "2698", delta: "+3"  },
-  { rank: 5, handle: "jiangly",   score: "2651", delta: "+1"  },
+// Card A — Contest Format: animated round badges showing the actual structure
+const ROUND_BADGES = [
+  { label: "Qualifier",     sub: "Online · All India",    color: "#1D4ED8", bg: "rgba(29,78,216,0.07)",  border: "rgba(29,78,216,0.20)" },
+  { label: "Semi-Final",    sub: "Online · Top Teams",    color: "#F59E0B", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.22)" },
+  { label: "Grand Final",   sub: "On-Campus · KIET",      color: "#DC2626", bg: "rgba(220,38,38,0.07)",  border: "rgba(220,38,38,0.22)" },
 ] as const;
 
-function LeaderboardWidget({ inView }: { inView: boolean }) {
+function FormatWidget({ inView }: { inView: boolean }) {
   return (
-    <div className="mt-4 flex flex-col gap-1.5" aria-hidden="true">
-      <div className="grid grid-cols-12 px-2 pb-1 border-b border-slate-100">
-        <span className="col-span-1 font-mono text-[9px] uppercase tracking-widest text-slate-400">#</span>
-        <span className="col-span-5 font-mono text-[9px] uppercase tracking-widest text-slate-400">Handle</span>
-        <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-slate-400 text-right">Score</span>
-        <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-slate-400 text-right">Delta</span>
-      </div>
-      {LEADERBOARD_ROWS.map((row, i) => (
+    <div className="mt-5 flex flex-col gap-2" aria-label="Contest round structure">
+      {ROUND_BADGES.map((round, i) => (
         <motion.div
-          key={row.rank}
-          initial={{ opacity: 0, x: -14 }}
+          key={round.label}
+          initial={{ opacity: 0, x: -20 }}
           animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.35, delay: 0.25 + i * 0.09, ease: [0.22, 1, 0.36, 1] }}
-          className={`grid grid-cols-12 items-center px-2 py-1.5 rounded-lg ${
-            row.rank === 1 ? "bg-brand-green/8 border border-brand-green/20" : "bg-slate-50"
-          }`}
+          transition={{ duration: 0.45, delay: 0.2 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ background: round.bg, border: `1px solid ${round.border}` }}
         >
-          <span className={`col-span-1 font-mono text-[11px] font-bold ${row.rank === 1 ? "text-brand-green" : "text-slate-400"}`}>
-            {row.rank}
+          {/* Step number */}
+          <span
+            className="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold flex-shrink-0"
+            style={{ background: round.color, color: "#fff" }}
+          >
+            {i + 1}
           </span>
-          <span className="col-span-5 font-mono text-[11px] text-slate-700 truncate">{row.handle}</span>
-          <span className="col-span-3 font-mono text-[11px] text-slate-500 text-right">{row.score}</span>
-          <span className="col-span-3 font-mono text-[11px] text-brand-green text-right">{row.delta}</span>
+          <div className="flex flex-col gap-0">
+            <span className="font-sans text-xs font-semibold" style={{ color: round.color }}>
+              {round.label}
+            </span>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400">
+              {round.sub}
+            </span>
+          </div>
+          {/* Connector arrow — not on last item */}
+          {i < ROUND_BADGES.length - 1 && (
+            <svg className="ml-auto flex-shrink-0" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 2L12 7L7 12M2 7H12" stroke={round.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
+            </svg>
+          )}
+          {i === ROUND_BADGES.length - 1 && (
+            <span className="ml-auto font-mono text-[9px] text-brand-yellow font-semibold flex-shrink-0">
+              ₹10L+ Prizes
+            </span>
+          )}
         </motion.div>
       ))}
-      <div className="flex items-center gap-2 mt-1 px-2">
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green opacity-75" aria-hidden="true" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-green" aria-hidden="true" />
-        </span>
-        <span className="font-mono text-[9px] uppercase tracking-widest text-brand-green">
-          Live · Updates every 200ms
-        </span>
-      </div>
     </div>
   );
 }
 
-const PROBLEM_BARS = [
-  { label: "800",  pct: 100, color: "#16a34a" },
-  { label: "1200", pct: 100, color: "#65a30d" },
-  { label: "1600", pct: 66,  color: "#f59e0b" },
-  { label: "2000", pct: 33,  color: "#f97316" },
-  { label: "2400", pct: 33,  color: "#dc2626" },
+// Card B — Problem Craft: visual spectrum showing difficulty range with real labels
+const DIFFICULTY_SPECTRUM = [
+  { label: "Warm-Up",    desc: "Implementation · Greedy",          pct: 100, color: "#16a34a" },
+  { label: "Mid",        desc: "Graphs · Binary Search · DP",      pct: 75,  color: "#f59e0b" },
+  { label: "Advanced",   desc: "Segment Trees · Combinatorics",    pct: 50,  color: "#f97316" },
+  { label: "Expert",     desc: "Multi-concept · Creative",         pct: 25,  color: "#dc2626" },
 ] as const;
 
-function ProblemsWidget({ inView }: { inView: boolean }) {
+function DifficultyWidget({ inView }: { inView: boolean }) {
   return (
-    <div className="mt-4 flex flex-col gap-2.5" aria-hidden="true">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400 mb-1">
-        Difficulty Distribution
+    <div className="mt-5 flex flex-col gap-3" aria-label="Problem difficulty breakdown">
+      <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400">
+        Problem spectrum per round
       </span>
-      {PROBLEM_BARS.map((bar, i) => (
-        <div key={bar.label} className="flex items-center gap-3">
-          <span className="font-mono text-[10px] text-slate-400 w-8 text-right flex-shrink-0">{bar.label}</span>
-          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+      {DIFFICULTY_SPECTRUM.map((tier, i) => (
+        <div key={tier.label} className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="font-sans text-[11px] font-semibold text-slate-600">{tier.label}</span>
+            <span className="font-mono text-[9px] text-slate-400 truncate max-w-[140px] text-right">{tier.desc}</span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(226,232,240,0.80)" }}>
             <motion.div
               className="h-full rounded-full"
-              style={{ backgroundColor: bar.color }}
+              style={{ backgroundColor: tier.color }}
               initial={{ width: 0 }}
-              animate={inView ? { width: `${bar.pct}%` } : {}}
-              transition={{ duration: 0.65, delay: 0.2 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              animate={inView ? { width: `${tier.pct}%` } : {}}
+              transition={{ duration: 0.7, delay: 0.2 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
         </div>
       ))}
-      <div className="flex items-center justify-between mt-1 px-1">
-        <span className="font-mono text-[9px] text-slate-400 uppercase tracking-widest">10 problems total</span>
-        <span className="font-mono text-[9px] text-brand-yellow uppercase tracking-widest">3h limit</span>
+      <div className="flex justify-between mt-1">
+        <span className="font-mono text-[9px] text-slate-400 uppercase tracking-widest">Easy</span>
+        <span className="font-mono text-[9px] text-slate-400 uppercase tracking-widest">Hard</span>
       </div>
     </div>
   );
 }
 
-const PRIZE_TIERS = [
-  { place: "1st", amount: "₹50,000", colorRaw: "#B45309", bgRaw: "rgba(245,158,11,0.08)", borderRaw: "rgba(245,158,11,0.25)", icon: "🥇" },
-  { place: "2nd", amount: "₹30,000", colorRaw: "#475569", bgRaw: "rgba(71,85,105,0.06)",  borderRaw: "rgba(71,85,105,0.20)",  icon: "🥈" },
-  { place: "3rd", amount: "₹15,000", colorRaw: "#b45309", bgRaw: "rgba(180,83,9,0.07)",   borderRaw: "rgba(180,83,9,0.20)",   icon: "🥉" },
+// Card C — Prize & Recognition: what winners actually receive
+const PRIZE_HIGHLIGHTS = [
+  { icon: "🏆", label: "Cash Prizes",       desc: "Top 3 teams + individual awards" },
+  { icon: "📜", label: "Certificates",      desc: "For all finalists & ranked participants" },
+  { icon: "🎁", label: "Sponsor Swag",      desc: "Kits from industry sponsors"       },
+  { icon: "🔗", label: "Hiring Referrals",  desc: "Direct to partner companies"       },
 ] as const;
 
-function PrizesWidget({ inView }: { inView: boolean }) {
+function PrizeWidget({ inView }: { inView: boolean }) {
   return (
-    <div className="mt-4 flex flex-col gap-2" aria-hidden="true">
-      {PRIZE_TIERS.map((tier, i) => (
+    <div className="mt-5 grid grid-cols-2 gap-2" aria-label="Prize and recognition details">
+      {PRIZE_HIGHLIGHTS.map((item, i) => (
         <motion.div
-          key={tier.place}
-          initial={{ opacity: 0, scale: 0.93 }}
+          key={item.label}
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={inView ? { opacity: 1, scale: 1 } : {}}
-          transition={{ duration: 0.4, delay: 0.2 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center justify-between px-3 py-2 rounded-xl"
-          style={{ background: tier.bgRaw, border: `1px solid ${tier.borderRaw}` }}
+          transition={{ duration: 0.38, delay: 0.18 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col gap-1.5 p-3 rounded-xl border border-white/60"
+          style={{ background: "rgba(248,250,252,0.80)" }}
         >
-          <div className="flex items-center gap-2.5">
-            <span className="text-base leading-none">{tier.icon}</span>
-            <span className="font-mono text-[11px] font-semibold" style={{ color: tier.colorRaw }}>
-              {tier.place} Place
-            </span>
-          </div>
-          <span className="font-mono text-[13px] font-bold" style={{ color: tier.colorRaw }}>
-            {tier.amount}
+          <span className="text-lg leading-none">{item.icon}</span>
+          <span className="font-sans text-[11px] font-semibold text-slate-700 leading-tight">{item.label}</span>
+          <span className="font-mono text-[9px] text-slate-400 leading-relaxed">{item.desc}</span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// Card D — Reach & Scale: animated stat pills showing real contest scale
+const SCALE_STATS = [
+  { value: "200+",  label: "Colleges",      color: "#1D4ED8", bg: "rgba(29,78,216,0.07)",  border: "rgba(29,78,216,0.18)" },
+  { value: "Pan-India", label: "Reach",     color: "#16A34A", bg: "rgba(22,163,74,0.07)",  border: "rgba(22,163,74,0.18)" },
+  { value: "3",     label: "Rounds",        color: "#F59E0B", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.22)" },
+  { value: "48hrs", label: "Final Sprint",  color: "#DC2626", bg: "rgba(220,38,38,0.07)",  border: "rgba(220,38,38,0.20)" },
+  { value: "₹10L+", label: "Prize Pool",   color: "#7c3aed", bg: "rgba(124,58,237,0.07)", border: "rgba(124,58,237,0.20)" },
+  { value: "ICPC",  label: "Style Rules",  color: "#0891b2", bg: "rgba(8,145,178,0.07)",  border: "rgba(8,145,178,0.18)" },
+] as const;
+
+function ScaleWidget({ inView }: { inView: boolean }) {
+  return (
+    <div className="mt-5 flex flex-wrap gap-2" aria-label="Contest scale and reach">
+      {SCALE_STATS.map((stat, i) => (
+        <motion.div
+          key={stat.label}
+          initial={{ opacity: 0, y: 12, scale: 0.88 }}
+          animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+          transition={{ duration: 0.4, delay: 0.15 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col items-center px-3 py-2 rounded-xl"
+          style={{ background: stat.bg, border: `1px solid ${stat.border}` }}
+        >
+          <span className="font-mono text-sm font-bold" style={{ color: stat.color }}>
+            {stat.value}
+          </span>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400 mt-0.5">
+            {stat.label}
           </span>
         </motion.div>
       ))}
-      <p className="font-mono text-[9px] uppercase tracking-widest text-slate-400 mt-1 px-1">
-        + Certificates · Swag · Referrals
-      </p>
-    </div>
-  );
-}
-
-function BracketWidget({ inView }: { inView: boolean }) {
-  const teams = ["KIET-A", "NIT-T", "DTU-X", "IIT-B"] as const;
-  return (
-    <div className="mt-4" aria-hidden="true">
-      <div className="flex items-center gap-3">
-        <div className="flex flex-col gap-5 flex-1">
-          {teams.map((team, i) => (
-            <motion.div
-              key={team}
-              initial={{ opacity: 0, x: -10 }}
-              animate={inView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.35, delay: 0.15 + i * 0.08 }}
-              className={`px-2.5 py-1.5 rounded-lg border font-mono text-[10px] ${
-                i === 0 || i === 2
-                  ? "border-brand-blue/25 bg-brand-blue/5 text-brand-blue"
-                  : "border-slate-200 bg-slate-50 text-slate-400"
-              }`}
-            >
-              {team}
-            </motion.div>
-          ))}
-        </div>
-        <svg width="32" height="120" viewBox="0 0 32 120" fill="none" className="flex-shrink-0">
-          <motion.path
-            d="M0 15 H16 V45 M0 45 H16 V15 M16 30 H32 V75 M0 75 H16 V105 M0 105 H16 V75 M16 90 H32 V75"
-            stroke="rgba(30,41,59,0.15)" strokeWidth="1" fill="none"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={inView ? { pathLength: 1, opacity: 1 } : {}}
-            transition={{ duration: 1.1, delay: 0.45, ease: "easeInOut" }}
-          />
-        </svg>
-        <div className="flex flex-col gap-10 flex-shrink-0">
-          {[{ team: "KIET-A", winner: true }, { team: "DTU-X", winner: false }].map((item, i) => (
-            <motion.div
-              key={item.team}
-              initial={{ opacity: 0, x: 10 }}
-              animate={inView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.35, delay: 0.55 + i * 0.1 }}
-              className={`px-2.5 py-1.5 rounded-lg border font-mono text-[10px] ${
-                item.winner
-                  ? "border-brand-yellow/30 bg-brand-yellow/8 text-brand-yellow"
-                  : "border-slate-200 bg-slate-50 text-slate-400"
-              }`}
-            >
-              {item.team}
-            </motion.div>
-          ))}
-        </div>
-      </div>
-      <p className="font-mono text-[9px] uppercase tracking-widest text-slate-400 mt-3 px-1">
-        Elimination bracket · Finals on campus
-      </p>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OverviewCard — light themed with hover glow + mouse spotlight
+// Updated BENTO_CARDS — real contest information, no fake metrics
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OVERVIEW_CARDS = [
+  {
+    id: "format",
+    ghost: "01",
+    accentBar:    "bg-brand-blue",
+    accentGlow:   "rgba(29,78,216,0.07)",
+    accentBorder: "rgba(29,78,216,0.22)",
+    accentShadow: "rgba(29,78,216,0.10)",
+    accentText:   "text-brand-blue",
+    accentRaw:    "#1D4ED8",
+    Icon: BarChart2,
+    badge: "3 Rounds",
+    badgeSub: "qualifier → semi → final",
+    title: "ICPC-Style Contest Format",
+    description:
+      "Three progressive rounds — online qualifier, online semi-final, and a live on-campus grand final at KIET. Each stage raises the bar.",
+    wide: true,
+    widget: "format",
+  },
+  {
+    id: "problems",
+    ghost: "02",
+    accentBar:    "bg-brand-yellow",
+    accentGlow:   "rgba(245,158,11,0.07)",
+    accentBorder: "rgba(245,158,11,0.22)",
+    accentShadow: "rgba(245,158,11,0.10)",
+    accentText:   "text-brand-yellow",
+    accentRaw:    "#F59E0B",
+    Icon: Code2,
+    badge: "10+ Problems",
+    badgeSub: "per round",
+    title: "Complex DSA Problem Sets",
+    description:
+      "Curated by national-level competitive programmers. Problems span implementation, graphs, DP, and multi-concept hard problems.",
+    wide: false,
+    widget: "problems",
+  },
+  {
+    id: "prizes",
+    ghost: "03",
+    accentBar:    "bg-brand-green",
+    accentGlow:   "rgba(22,163,74,0.07)",
+    accentBorder: "rgba(22,163,74,0.22)",
+    accentShadow: "rgba(22,163,74,0.10)",
+    accentText:   "text-brand-green",
+    accentRaw:    "#16A34A",
+    Icon: Trophy,
+    badge: "₹10L+ Pool",
+    badgeSub: "cash · swag · referrals",
+    title: "Prizes and Recognition",
+    description:
+      "Cash awards for top finishers, certificates for all ranked participants, sponsor swag kits, and direct hiring referrals to partner companies.",
+    wide: false,
+    widget: "prizes",
+  },
+  {
+    id: "scale",
+    ghost: "04",
+    accentBar:    "bg-brand-red",
+    accentGlow:   "rgba(220,38,38,0.07)",
+    accentBorder: "rgba(220,38,38,0.22)",
+    accentShadow: "rgba(220,38,38,0.10)",
+    accentText:   "text-brand-red",
+    accentRaw:    "#DC2626",
+    Icon: Globe,
+    badge: "200+ Colleges",
+    badgeSub: "pan-india reach",
+    title: "National Scale Competition",
+    description:
+      "Open to students from any college across India — KIET, NITs, IITs, state universities, and autonomous institutions all on the same leaderboard.",
+    wide: true,
+    widget: "scale",
+  },
+] as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OverviewCard — premium light card with unique per-card widget
 // ─────────────────────────────────────────────────────────────────────────────
 
 function OverviewCard({
   card, index, reducedMotion,
 }: {
-  card: (typeof BENTO_CARDS)[number];
+  card: (typeof OVERVIEW_CARDS)[number];
   index: number;
   reducedMotion: boolean;
 }) {
   const IconComponent = card.Icon;
   const [hovered, setHovered] = useState(false);
   const [mouse, setMouse]     = useState({ x: 50, y: 50 });
-  const { display, ref: countRef } = useCountUp(card.metric, 1400);
   const cardRef = useRef<HTMLElement>(null);
   const inView  = useInView(cardRef, { once: true, margin: "-60px" });
 
   const entryDirs = [
     { y: 36, x: 0   },
-    { y: 0,  x: -36 },
-    { y: 0,  x: 36  },
+    { y: 0,  x: -32 },
+    { y: 0,  x: 32  },
     { y: 36, x: 0   },
   ];
   const dir = entryDirs[index] ?? { y: 36, x: 0 };
@@ -747,23 +804,28 @@ function OverviewCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onMouseMove={handleMouseMove}
-      className={`relative flex flex-col overflow-hidden rounded-2xl cursor-default bg-white
+      className={`relative flex flex-col overflow-hidden rounded-2xl cursor-default
         ${card.wide ? "md:col-span-2" : "md:col-span-1"}`}
       style={{
-        border:     `1px solid ${hovered ? card.accentBorder : "rgba(30,41,59,0.10)"}`,
+        background:     hovered
+          ? `rgba(255,255,255,0.94)`
+          : "rgba(255,255,255,0.88)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        border:     `1px solid ${hovered ? card.accentBorder : "rgba(255,255,255,0.70)"}`,
         boxShadow:  hovered
-          ? `0 8px 40px ${card.accentShadow}, 0 2px 8px rgba(0,0,0,0.06)`
-          : "0 2px 12px rgba(0,0,0,0.05)",
-        transition: "border-color 0.3s, box-shadow 0.3s",
+          ? `0 8px 40px ${card.accentShadow}, 0 2px 16px rgba(0,0,0,0.08)`
+          : "0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)",
+        transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s",
       }}
       aria-label={card.title}
     >
-      {/* Mouse spotlight */}
+      {/* Mouse-tracking spotlight */}
       {hovered && !reducedMotion && (
         <div
           className="pointer-events-none absolute inset-0 z-0 rounded-2xl"
           style={{
-            background: `radial-gradient(circle at ${mouse.x}% ${mouse.y}%, ${card.accentGlow} 0%, transparent 60%)`,
+            background: `radial-gradient(circle at ${mouse.x}% ${mouse.y}%, ${card.accentGlow} 0%, transparent 65%)`,
           }}
           aria-hidden="true"
         />
@@ -772,15 +834,15 @@ function OverviewCard({
       {/* Accent top bar */}
       <motion.div
         className={`absolute top-0 left-0 right-0 h-[3px] ${card.accentBar} z-10`}
-        animate={{ opacity: hovered ? 1 : 0.7 }}
+        animate={{ opacity: hovered ? 1 : 0.65 }}
         transition={{ duration: 0.25 }}
         aria-hidden="true"
       />
 
-      {/* Halo above card on hover */}
-      {hovered && (
+      {/* Halo that bleeds above card on hover */}
+      {hovered && !reducedMotion && (
         <div
-          className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-2/3 h-16 blur-xl z-0"
+          className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-3/4 h-16 blur-2xl z-0"
           style={{ background: card.accentGlow }}
           aria-hidden="true"
         />
@@ -788,29 +850,32 @@ function OverviewCard({
 
       {/* Card body */}
       <div className="relative z-10 flex flex-col gap-3 p-6 sm:p-7 h-full">
-        {/* Icon + metric */}
+
+        {/* Top row: icon + badge */}
         <div className="flex items-start justify-between gap-4">
+          {/* Icon */}
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
-              background:  hovered ? card.accentGlow : "#f8fafc",
-              border:      `1px solid ${hovered ? card.accentBorder : "rgba(30,41,59,0.08)"}`,
-              transition:  "all 0.3s",
+              background: hovered ? card.accentGlow : "#f8fafc",
+              border:     `1px solid ${hovered ? card.accentBorder : "rgba(30,41,59,0.08)"}`,
+              transition: "all 0.3s",
             }}
             aria-hidden="true"
           >
             <IconComponent size={19} className={card.accentText} strokeWidth={1.75} />
           </div>
+
+          {/* Badge pill — real label, not a fake counter */}
           <div className="text-right flex-shrink-0">
             <span
-              ref={countRef}
-              className="font-mono font-bold tracking-tight text-brand-dark leading-none block"
-              style={{ fontSize: "clamp(22px, 3vw, 30px)" }}
+              className="font-mono font-bold tracking-tight leading-none block"
+              style={{ fontSize: "clamp(16px, 2.2vw, 22px)", color: card.accentRaw }}
             >
-              {display}
+              {card.badge}
             </span>
             <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400 mt-1 block">
-              {card.metricLabel}
+              {card.badgeSub}
             </span>
           </div>
         </div>
@@ -829,19 +894,19 @@ function OverviewCard({
           {card.description}
         </p>
 
-        {/* Live widget */}
-        {card.id === "leaderboard" && <LeaderboardWidget inView={inView} />}
-        {card.id === "problems"    && <ProblemsWidget   inView={inView} />}
-        {card.id === "prizes"      && <PrizesWidget     inView={inView} />}
-        {card.id === "bracket"     && <BracketWidget    inView={inView} />}
+        {/* Unique inner widget — real information, premium design */}
+        {card.widget === "format"   && <FormatWidget     inView={inView} />}
+        {card.widget === "problems" && <DifficultyWidget inView={inView} />}
+        {card.widget === "prizes"   && <PrizeWidget      inView={inView} />}
+        {card.widget === "scale"    && <ScaleWidget      inView={inView} />}
       </div>
 
-      {/* Ghost numeral */}
+      {/* Ghost numeral watermark */}
       <span
         className="pointer-events-none select-none absolute bottom-3 right-5 font-mono font-black leading-none z-0"
         style={{
-          fontSize: "80px",
-          color: hovered ? `${card.accentRaw}08` : "rgba(30,41,59,0.025)",
+          fontSize:   "80px",
+          color:      hovered ? `${card.accentRaw}08` : "rgba(30,41,59,0.022)",
           transition: "color 0.3s",
         }}
         aria-hidden="true"
@@ -853,7 +918,18 @@ function OverviewCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OverviewSection — light bg-slate-50
+// OverviewSection — cinematic overview-bg.jpg with frosted glass cards
+//
+// Layering system (bottom → top):
+//   1. overview-bg.jpg  — full-bleed, object-cover, fixed parallax feel
+//   2. White gradient overlay — heavy at top/bottom, near-transparent centre
+//      so the coding screenshot bleeds through behind the cards without
+//      ever competing with the text
+//   3. Fine dot-grid at very low opacity — adds micro-texture over the image
+//   4. Content: heading (white text on the image area) + frosted glass cards
+//
+// Cards use bg-white/88 + backdrop-blur-md so the image peeks through
+// each card at ~12% opacity — enough depth to feel premium, not distracting.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
@@ -861,45 +937,88 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
     <section
       id="overview"
       aria-label="Contest Overview"
-      className="relative overflow-hidden py-20 lg:py-28 bg-slate-50"
+      className="relative overflow-hidden py-20 lg:py-28"
     >
-      {/* Dot grid */}
+
+      {/* ── LAYER 1: Background image ── */}
+      <div className="absolute inset-0 z-0" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/assets/overview-bg.jpg"
+          alt=""
+          className="w-full h-full object-cover object-center"
+          style={{ filter: "saturate(0.85) brightness(1.05)" }}
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* ── LAYER 2: Multi-stop white overlay ──
+          Top: very heavy white so heading text reads on brand-dark
+          Mid-upper: lightens — image starts bleeding through
+          Mid: near-transparent — image is most visible here, behind cards
+          Bottom: heavy white again for clean transition to next section    */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-50"
+        className="pointer-events-none absolute inset-0 z-10"
         style={{
-          backgroundImage: "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
-          backgroundSize:  "40px 40px",
+          background:
+            "linear-gradient(to bottom," +
+            "rgba(255,255,255,0.96) 0%," +
+            "rgba(255,255,255,0.82) 12%," +
+            "rgba(255,255,255,0.38) 28%," +
+            "rgba(255,255,255,0.22) 50%," +
+            "rgba(255,255,255,0.38) 72%," +
+            "rgba(255,255,255,0.88) 88%," +
+            "rgba(255,255,255,0.98) 100%)",
         }}
         aria-hidden="true"
       />
 
-      {/* Top blend */}
+      {/* ── LAYER 3: Micro dot-grid texture over image ── */}
       <div
-        className="pointer-events-none absolute top-0 left-0 right-0 h-24"
-        style={{ background: "linear-gradient(to bottom, #ffffff 0%, transparent 100%)" }}
+        className="pointer-events-none absolute inset-0 z-10"
+        style={{
+          backgroundImage: "radial-gradient(circle, rgba(30,41,59,0.06) 1px, transparent 1px)",
+          backgroundSize:  "36px 36px",
+        }}
         aria-hidden="true"
       />
 
-      {/* Soft blue glow centre */}
+      {/* ── LAYER 4: Ambient brand colour washes ──
+          Sit above the image overlay to add CodeRush brand identity
+          over the neutral coding screenshot                          */}
       <div
-        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full blur-3xl"
-        style={{ background: "radial-gradient(ellipse, rgba(29,78,216,0.05) 0%, transparent 70%)" }}
+        className="pointer-events-none absolute -top-24 -left-24 w-[500px] h-[500px] rounded-full blur-3xl z-10"
+        style={{ background: "radial-gradient(circle, rgba(29,78,216,0.10) 0%, transparent 65%)" }}
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-16 -right-16 w-[420px] h-[420px] rounded-full blur-3xl z-10"
+        style={{ background: "radial-gradient(circle, rgba(220,38,38,0.08) 0%, transparent 65%)" }}
         aria-hidden="true"
       />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* ── LAYER 5: Content ── */}
+      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-        {/* Heading */}
+        {/* Section heading — sits directly on the image zone, uses dark text
+            because the image is bright (Mac + code + daylit room)          */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
           className="text-center mb-14 lg:mb-20"
         >
+          {/* Eyebrow pill — frosted so image shows through */}
           <div className="flex justify-center mb-5">
-            <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest
-                             text-brand-blue border border-brand-blue/20 bg-brand-blue/5 px-4 py-2 rounded-full">
+            <span
+              className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest
+                         text-brand-blue px-4 py-2 rounded-full backdrop-blur-sm"
+              style={{
+                border:     "1px solid rgba(29,78,216,0.25)",
+                background: "rgba(255,255,255,0.75)",
+              }}
+            >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-60" aria-hidden="true" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-blue" aria-hidden="true" />
@@ -908,15 +1027,16 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
             </span>
           </div>
 
+          {/* Main heading */}
           <h2
             className="font-sans font-black text-brand-dark tracking-tight mb-4"
-            style={{ fontSize: "clamp(2rem,5vw,3.5rem)", lineHeight: 1.05 }}
+            style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", lineHeight: 1.05 }}
           >
             Everything a competitive{" "}
             <br className="hidden sm:block" />
             <span
               style={{
-                background:           "linear-gradient(135deg,#1D4ED8 0%,#7c3aed 100%)",
+                background:           "linear-gradient(135deg, #1D4ED8 0%, #7c3aed 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor:  "transparent",
                 backgroundClip:       "text",
@@ -926,8 +1046,16 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
             </span>
           </h2>
 
-          <p className="font-sans text-[15px] text-slate-500 leading-relaxed max-w-xl mx-auto">
-            Four interactive pillars — hover to explore. Each one is live, not a mockup.
+          {/* Subheading — subtle frosted pill so image peeks through */}
+          <p
+            className="font-sans text-[15px] leading-relaxed max-w-xl mx-auto px-4 py-2 rounded-xl"
+            style={{
+              color:      "#475569",
+              background: "rgba(255,255,255,0.60)",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            Four pillars that define the CodeRush experience — hover each card to explore.
           </p>
 
           {/* Animated underline bars */}
@@ -956,9 +1084,9 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
           </motion.div>
         </motion.div>
 
-        {/* Card grid */}
+        {/* Card grid — cards use frosted glass so image bleeds through */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-          {BENTO_CARDS.map((card, i) => (
+          {OVERVIEW_CARDS.map((card, i) => (
             <OverviewCard key={card.id} card={card} index={i} reducedMotion={reducedMotion} />
           ))}
         </div>
@@ -971,11 +1099,18 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="mt-12 flex justify-center items-center gap-4"
         >
-          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-slate-200" aria-hidden="true" />
-          <p className="font-mono text-[9px] uppercase tracking-widest text-slate-400">
+          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-slate-300/50" aria-hidden="true" />
+          <p
+            className="font-mono text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-full"
+            style={{
+              color:      "#94a3b8",
+              background: "rgba(255,255,255,0.70)",
+              backdropFilter: "blur(4px)",
+            }}
+          >
             Custom online judge · Plagiarism detection · Real-time scoring
           </p>
-          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-slate-200" aria-hidden="true" />
+          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-slate-300/50" aria-hidden="true" />
         </motion.div>
 
       </div>
