@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   motion,
   AnimatePresence,
@@ -26,16 +26,12 @@ import {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
-// UNSTOP_HREF and contest metadata are imported from @/lib/constants.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sponsor data
-// Each sponsor carries a tier which maps to a focus colour on hover.
-// Grayscale → sharp colour is the transition as specified.
-// Tiers deliberately use the four brand accent tokens for consistency.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SponsorTier = "platinum" | "gold" | "silver" | "community";
@@ -67,13 +63,42 @@ const SPONSORS: Sponsor[] = [
   { id: "runtimeco",    name: "RuntimeCo",     tier: "community", href: "#" },
 ];
 
-// The marquee needs duplicated items to create a seamless infinite loop.
-// We duplicate 3× so even on very wide screens the track never shows a gap.
 const MARQUEE_TRACK_ROW_1 = [...SPONSORS, ...SPONSORS, ...SPONSORS];
 const MARQUEE_TRACK_ROW_2 = [...SPONSORS, ...SPONSORS, ...SPONSORS].reverse();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FAQ data — four practical questions as specified
+// Coding marquee lines — big bold font-mono lines that scroll below footer
+// Real competitive programming / contest phrases — no fake data
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CODING_PHRASES_ROW_1 = [
+  "SOLVE. RANK. REPEAT.",
+  "O(1) OR BUST.",
+  "DYNAMIC PROGRAMMING IS JUST RECURSION WITH MEMORY.",
+  "THE LEADERBOARD DOESN'T LIE.",
+  "WRITE ONCE. OPTIMIZE FOREVER.",
+  "COMPETITIVE PROGRAMMING IS A SPORT.",
+  "SEGMENT TREES > BRUTE FORCE.",
+  "CODERUSH SEASON IV.",
+] as const;
+
+const CODING_PHRASES_ROW_2 = [
+  "GRAPH PROBLEMS BUILD CHARACTER.",
+  "BINARY SEARCH YOUR WAY TO THE TOP.",
+  "AC OR WA — THERE IS NO TLE.",
+  "48 HOURS. ONE LEADERBOARD.",
+  "ICPC-STYLE. NO HINTS. NO MERCY.",
+  "KIET × CPBYTE × CODERUSH.",
+  "IF IN DOUBT, GREEDY IT OUT.",
+  "200+ COLLEGES. ONE CHAMPION.",
+] as const;
+
+// Duplicate for seamless loop
+const MARQUEE_PHRASES_1 = [...CODING_PHRASES_ROW_1, ...CODING_PHRASES_ROW_1, ...CODING_PHRASES_ROW_1];
+const MARQUEE_PHRASES_2 = [...CODING_PHRASES_ROW_2, ...CODING_PHRASES_ROW_2, ...CODING_PHRASES_ROW_2];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAQ data
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FaqItem {
@@ -110,93 +135,64 @@ const FAQ_ITEMS: FaqItem[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Footer navigation data
+// Footer navigation & social
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FOOTER_NAV_LINKS = [
-  { label: "About",       href: "#about" },
-  { label: "Timeline",    href: "#timeline" },
-  { label: "Overview",    href: "#overview" },
+  { label: "About",       href: "#about"       },
+  { label: "Timeline",    href: "#timeline"    },
+  { label: "Overview",    href: "#overview"    },
   { label: "Eligibility", href: "#eligibility" },
-  { label: "Sponsors",    href: "#sponsors" },
-  { label: "FAQ",         href: "#faq" },
+  { label: "Sponsors",    href: "#sponsors"    },
+  { label: "FAQ",         href: "#faq"         },
 ] as const;
 
-// lucide-react (v0.383.0) does not export social brand icons.
-// Substitutes used:
-//   GitHub    → GitBranch  (version control / code context)
-//   Instagram → Camera     (closest visual metaphor for photo platform)
-//   LinkedIn  → Linkedin   (available in this version as "Linkedin")
-//   Twitter/X → Twitter    (available in this version as "Twitter")
 const FOOTER_SOCIAL_LINKS = [
-  { label: "GitHub",    href: "https://github.com/cpbyte-kiet",      Icon: FaGithub      },
-  { label: "Instagram", href: "https://instagram.com/cpbyte_kiet",   Icon: FaInstagram   },
-  { label: "LinkedIn",  href: "https://linkedin.com/company/cpbyte", Icon: FaLinkedinIn  },
-  { label: "Twitter",   href: "https://twitter.com/cpbyte_kiet",     Icon: FaXTwitter    },
+  { label: "GitHub",    href: "https://github.com/cpbyte-kiet",      Icon: FaGithub     },
+  { label: "Instagram", href: "https://instagram.com/cpbyte_kiet",   Icon: FaInstagram  },
+  { label: "LinkedIn",  href: "https://linkedin.com/company/cpbyte", Icon: FaLinkedinIn },
+  { label: "Twitter",   href: "https://twitter.com/cpbyte_kiet",     Icon: FaXTwitter   },
 ] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Animation variants
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Section heading fade-up — consistent with the rest of the page system
 const fadeUpVariant: Variants = {
   hidden: { opacity: 0, y: 22 },
-  visible: (delaySeconds: number) => ({
+  visible: (delay: number) => ({
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.55,
-      ease: [0.22, 1, 0.36, 1],
-      delay: delaySeconds,
-    },
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay },
   }),
 };
 
-// FAQ answer panel — animates height from 0 to its measured natural height.
-// opacity fades in slightly behind the height so text doesn't pop on first frame.
 const faqPanelVariant: Variants = {
-  hidden: {
-    height: 0,
-    opacity: 0,
-  },
+  hidden:  { height: 0, opacity: 0 },
   visible: {
-    height: "auto",
-    opacity: 1,
+    height: "auto", opacity: 1,
     transition: {
-      height: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+      height:  { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
       opacity: { duration: 0.25, ease: "easeOut", delay: 0.08 },
     },
   },
   exit: {
-    height: 0,
-    opacity: 0,
+    height: 0, opacity: 0,
     transition: {
-      height: { duration: 0.3, ease: [0.55, 0, 0.45, 1] },
+      height:  { duration: 0.3,  ease: [0.55, 0, 0.45, 1] },
       opacity: { duration: 0.15, ease: "easeIn" },
     },
   },
 };
 
-// Plus/X icon swap inside the FAQ trigger
 const iconEnterVariant: Variants = {
-  hidden: { opacity: 0, rotate: -45, scale: 0.7 },
-  visible: {
-    opacity: 1,
-    rotate: 0,
-    scale: 1,
-    transition: { duration: 0.2, ease: "easeOut" },
-  },
-  exit: {
-    opacity: 0,
-    rotate: 45,
-    scale: 0.7,
-    transition: { duration: 0.15, ease: "easeIn" },
-  },
+  hidden:  { opacity: 0, rotate: -45, scale: 0.7 },
+  visible: { opacity: 1, rotate: 0,   scale: 1,   transition: { duration: 0.2, ease: "easeOut" } },
+  exit:    { opacity: 0, rotate: 45,  scale: 0.7, transition: { duration: 0.15, ease: "easeIn" } },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SectionHeading — consistent page-wide pattern
+// SectionHeading
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SectionHeadingProps {
@@ -206,38 +202,18 @@ interface SectionHeadingProps {
   centered?: boolean;
 }
 
-function SectionHeading({
-  eyebrow,
-  heading,
-  subheading,
-  centered = false,
-}: SectionHeadingProps) {
+function SectionHeading({ eyebrow, heading, subheading, centered = false }: SectionHeadingProps) {
   return (
     <div className={centered ? "text-center" : ""}>
-      <span
-        className="
-          inline-flex items-center gap-2
-          font-mono text-xs uppercase tracking-widest text-brand-blue
-          border border-brand-blue/20 bg-brand-blue/5
-          px-3 py-1.5 rounded-full mb-4
-        "
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full bg-brand-blue inline-block"
-          aria-hidden="true"
-        />
+      <span className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest
+                       text-brand-blue border border-brand-blue/20 bg-brand-blue/5
+                       px-3 py-1.5 rounded-full mb-4">
+        <span className="w-1.5 h-1.5 rounded-full bg-brand-blue inline-block" aria-hidden="true" />
         {eyebrow}
       </span>
-
-      <h2
-        className="
-          font-sans text-3xl sm:text-4xl font-bold tracking-tight
-          text-brand-dark leading-[1.1]
-        "
-      >
+      <h2 className="font-sans text-3xl sm:text-4xl font-bold tracking-tight text-brand-dark leading-[1.1]">
         {heading}
       </h2>
-
       {subheading && (
         <p className="mt-3 font-sans text-[15px] text-slate-500 leading-relaxed max-w-xl mx-auto">
           {subheading}
@@ -248,7 +224,7 @@ function SectionHeading({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SponsorPill — a single sponsor tile inside the marquee track
+// SponsorPill — unchanged from original working version
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SponsorPill({ sponsor }: { sponsor: Sponsor }) {
@@ -259,24 +235,18 @@ function SponsorPill({ sponsor }: { sponsor: Sponsor }) {
       rel="noopener noreferrer"
       aria-label={`${sponsor.name} — sponsor`}
       className={`
-        flex-shrink-0
-        inline-flex items-center gap-2
-        px-5 py-2.5 mx-3
-        rounded-full
-        border border-slate-200
-        bg-white
-        font-mono text-sm font-medium tracking-wide
-        text-slate-400
+        flex-shrink-0 inline-flex items-center gap-2
+        px-5 py-2.5 mx-3 rounded-full
+        border border-slate-200 bg-white
+        font-mono text-sm font-medium tracking-wide text-slate-400
         transition-all duration-200
         ${SPONSOR_TIER_COLORS[sponsor.tier]}
         focus-visible:outline focus-visible:outline-2
         focus-visible:outline-offset-2 focus-visible:outline-brand-blue
       `}
     >
-      {/* Tier indicator dot — coloured even in grayscale state to hint the tier */}
       <span
-        className={`
-          w-1.5 h-1.5 rounded-full flex-shrink-0 opacity-40
+        className={`w-1.5 h-1.5 rounded-full flex-shrink-0 opacity-40
           ${sponsor.tier === "platinum"  ? "bg-brand-blue"   : ""}
           ${sponsor.tier === "gold"      ? "bg-brand-yellow" : ""}
           ${sponsor.tier === "silver"    ? "bg-brand-green"  : ""}
@@ -290,11 +260,7 @@ function SponsorPill({ sponsor }: { sponsor: Sponsor }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SponsorsSection
-// Two marquee rows scroll in opposite directions.
-// Row 1 scrolls left (standard `animate-marquee`).
-// Row 2 scrolls right via animationDirection: "reverse" on the same keyframe.
-// Both rows pause on hover via `hover:[animation-play-state:paused]`.
+// SponsorsSection — original clean two-row marquee restored exactly
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SponsorsSection({ reducedMotion }: { reducedMotion: boolean }) {
@@ -304,13 +270,10 @@ function SponsorsSection({ reducedMotion }: { reducedMotion: boolean }) {
       aria-label="Sponsors"
       className="relative bg-white py-20 lg:py-24 overflow-hidden border-b border-slate-200/80"
     >
-      {/* Radial glow — mirrors the Hero section's top-left glow for visual bookending */}
+      {/* Radial glow */}
       <div
-        className="
-          pointer-events-none absolute -bottom-24 -right-24
-          w-[480px] h-[480px] rounded-full
-          bg-brand-yellow/[0.04] blur-3xl
-        "
+        className="pointer-events-none absolute -bottom-24 -right-24 w-[480px] h-[480px]
+                   rounded-full bg-brand-yellow/[0.04] blur-3xl"
         aria-hidden="true"
       />
 
@@ -327,7 +290,7 @@ function SponsorsSection({ reducedMotion }: { reducedMotion: boolean }) {
         >
           <SectionHeading
             eyebrow="Our Sponsors"
-            heading="Backed by the best\nin the industry."
+            heading="Backed by the best in the industry."
             subheading="CodeRush Season IV is made possible by organisations that believe in building the next generation of competitive programmers."
             centered
           />
@@ -342,19 +305,14 @@ function SponsorsSection({ reducedMotion }: { reducedMotion: boolean }) {
           viewport={{ once: true, amount: 0.3 }}
           className="flex flex-wrap justify-center items-center gap-5 mb-10"
         >
-          {(
-            [
-              { tier: "platinum",  color: "bg-brand-blue",   label: "Platinum" },
-              { tier: "gold",      color: "bg-brand-yellow", label: "Gold" },
-              { tier: "silver",    color: "bg-brand-green",  label: "Silver" },
-              { tier: "community", color: "bg-brand-red",    label: "Community" },
-            ] as const
-          ).map((item) => (
+          {([
+            { tier: "platinum",  color: "bg-brand-blue",   label: "Platinum"  },
+            { tier: "gold",      color: "bg-brand-yellow", label: "Gold"      },
+            { tier: "silver",    color: "bg-brand-green",  label: "Silver"    },
+            { tier: "community", color: "bg-brand-red",    label: "Community" },
+          ] as const).map((item) => (
             <span key={item.tier} className="flex items-center gap-1.5">
-              <span
-                className={`w-2 h-2 rounded-full ${item.color} inline-block`}
-                aria-hidden="true"
-              />
+              <span className={`w-2 h-2 rounded-full ${item.color} inline-block`} aria-hidden="true" />
               <span className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
                 {item.label}
               </span>
@@ -364,30 +322,21 @@ function SponsorsSection({ reducedMotion }: { reducedMotion: boolean }) {
 
       </div>
 
-      {/* ── Marquee rows ── outside the max-w container so it bleeds full-width */}
-
-      {/* Edge fade masks — left and right gradients dissolve the track edges */}
+      {/* Edge fade masks — left and right gradients dissolve track edges */}
       <div
-        className="
-          pointer-events-none absolute inset-y-0 left-0 w-24 z-10
-          bg-gradient-to-r from-white to-transparent
-        "
+        className="pointer-events-none absolute inset-y-0 left-0 w-24 z-10
+                   bg-gradient-to-r from-white to-transparent"
         aria-hidden="true"
       />
       <div
-        className="
-          pointer-events-none absolute inset-y-0 right-0 w-24 z-10
-          bg-gradient-to-l from-white to-transparent
-        "
+        className="pointer-events-none absolute inset-y-0 right-0 w-24 z-10
+                   bg-gradient-to-l from-white to-transparent"
         aria-hidden="true"
       />
 
       {/* Row 1 — scrolls left */}
       <div
-        className={`
-          flex overflow-hidden mb-4
-          ${reducedMotion ? "" : "hover:[&>div]:[animation-play-state:paused]"}
-        `}
+        className={`flex overflow-hidden mb-4 ${reducedMotion ? "" : "hover:[&>div]:[animation-play-state:paused]"}`}
         aria-hidden="true"
       >
         <div
@@ -400,12 +349,9 @@ function SponsorsSection({ reducedMotion }: { reducedMotion: boolean }) {
         </div>
       </div>
 
-      {/* Row 2 — scrolls right (reversed direction via inline style) */}
+      {/* Row 2 — scrolls right */}
       <div
-        className={`
-          flex overflow-hidden
-          ${reducedMotion ? "" : "hover:[&>div]:[animation-play-state:paused]"}
-        `}
+        className={`flex overflow-hidden ${reducedMotion ? "" : "hover:[&>div]:[animation-play-state:paused]"}`}
         aria-hidden="true"
       >
         <div
@@ -433,18 +379,12 @@ function SponsorsSection({ reducedMotion }: { reducedMotion: boolean }) {
       >
         <a
           href="mailto:cpbyte@kiet.edu?subject=CodeRush%20Sponsorship%20Enquiry"
-          className="
-            inline-flex items-center gap-2
-            font-mono text-xs uppercase tracking-widest
-            text-slate-500 hover:text-brand-blue
-            border border-slate-200 hover:border-brand-blue/30
-            bg-white hover:bg-brand-blue/5
-            px-5 py-2.5 rounded-full
-            transition-all duration-200
-            focus-visible:outline focus-visible:outline-2
-            focus-visible:outline-offset-2 focus-visible:outline-brand-blue
-            group
-          "
+          className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest
+                     text-slate-500 hover:text-brand-blue border border-slate-200
+                     hover:border-brand-blue/30 bg-white hover:bg-brand-blue/5
+                     px-5 py-2.5 rounded-full transition-all duration-200
+                     focus-visible:outline focus-visible:outline-2
+                     focus-visible:outline-offset-2 focus-visible:outline-brand-blue group"
         >
           Become a Sponsor
           <ArrowRight
@@ -461,25 +401,17 @@ function SponsorsSection({ reducedMotion }: { reducedMotion: boolean }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FaqAccordionItem
-// Uses AnimatePresence + motion.div height animation for the answer panel.
-// The Plus/X icon swap is also animated via AnimatePresence.
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface FaqAccordionItemProps {
+function FaqAccordionItem({
+  item, isOpen, onToggle, index, reducedMotion,
+}: {
   item: FaqItem;
   isOpen: boolean;
   onToggle: () => void;
   index: number;
   reducedMotion: boolean;
-}
-
-function FaqAccordionItem({
-  item,
-  isOpen,
-  onToggle,
-  index,
-  reducedMotion,
-}: FaqAccordionItemProps) {
+}) {
   return (
     <motion.div
       variants={reducedMotion ? {} : fadeUpVariant}
@@ -487,51 +419,29 @@ function FaqAccordionItem({
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.2 }}
-      className={`
-        border rounded-2xl overflow-hidden
-        transition-colors duration-200
+      className={`border rounded-2xl overflow-hidden transition-colors duration-200
         ${isOpen
           ? "border-brand-blue/30 bg-brand-blue/[0.02]"
           : "border-slate-200 bg-white hover:border-slate-300"
-        }
-      `}
+        }`}
     >
-      {/* Question trigger button */}
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-controls={`faq-panel-${item.id}`}
-        className="
-          w-full flex items-start justify-between gap-4
-          px-6 py-5 text-left
-          focus-visible:outline focus-visible:outline-2
-          focus-visible:outline-offset-[-2px] focus-visible:outline-brand-blue
-          rounded-2xl
-        "
+        className="w-full flex items-start justify-between gap-4 px-6 py-5 text-left
+                   focus-visible:outline focus-visible:outline-2
+                   focus-visible:outline-offset-[-2px] focus-visible:outline-brand-blue rounded-2xl"
       >
-        {/* Question text */}
-        <span
-          className={`
-            font-sans text-sm font-semibold leading-snug
-            transition-colors duration-150
-            ${isOpen ? "text-brand-dark" : "text-slate-700"}
-          `}
-        >
+        <span className={`font-sans text-sm font-semibold leading-snug transition-colors duration-150
+          ${isOpen ? "text-brand-dark" : "text-slate-700"}`}>
           {item.question}
         </span>
-
-        {/* Animated Plus → X icon swap */}
         <span
-          className={`
-            flex-shrink-0 w-6 h-6 rounded-md
-            flex items-center justify-center
+          className={`flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center
             transition-colors duration-150
-            ${isOpen
-              ? "bg-brand-blue/10 text-brand-blue"
-              : "bg-slate-100 text-slate-500"
-            }
-          `}
+            ${isOpen ? "bg-brand-blue/10 text-brand-blue" : "bg-slate-100 text-slate-500"}`}
           aria-hidden="true"
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -539,9 +449,7 @@ function FaqAccordionItem({
               <motion.span
                 key="close"
                 variants={iconEnterVariant}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
+                initial="hidden" animate="visible" exit="exit"
                 className="flex items-center justify-center"
               >
                 <X size={13} strokeWidth={2.5} />
@@ -550,9 +458,7 @@ function FaqAccordionItem({
               <motion.span
                 key="open"
                 variants={iconEnterVariant}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
+                initial="hidden" animate="visible" exit="exit"
                 className="flex items-center justify-center"
               >
                 <Plus size={13} strokeWidth={2.5} />
@@ -562,9 +468,6 @@ function FaqAccordionItem({
         </span>
       </button>
 
-      {/* Answer panel — AnimatePresence handles mount/unmount,
-          motion.div handles the height + opacity transition.
-          overflow-hidden on the motion.div clips content during height: 0. */}
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
@@ -572,17 +475,12 @@ function FaqAccordionItem({
             role="region"
             aria-label={item.question}
             variants={reducedMotion ? {} : faqPanelVariant}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
+            initial="hidden" animate="visible" exit="exit"
             style={{ overflow: "hidden" }}
           >
-            {/* Inner padding wrapper keeps text away from the clipping edge */}
             <div className="px-6 pb-5">
               <div className="h-px bg-slate-100 mb-4" aria-hidden="true" />
-              <p className="font-sans text-sm text-slate-500 leading-relaxed">
-                {item.answer}
-              </p>
+              <p className="font-sans text-sm text-slate-500 leading-relaxed">{item.answer}</p>
             </div>
           </motion.div>
         )}
@@ -593,16 +491,11 @@ function FaqAccordionItem({
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FaqSection
-// Manages which accordion item is open (one at a time).
 // ─────────────────────────────────────────────────────────────────────────────
 
 function FaqSection({ reducedMotion }: { reducedMotion: boolean }) {
-  // null = all closed; string = the id of the currently open item
   const [openId, setOpenId] = useState<string | null>(null);
-
-  function handleToggle(id: string) {
-    setOpenId((prev) => (prev === id ? null : id));
-  }
+  const handleToggle = (id: string) => setOpenId((p) => (p === id ? null : id));
 
   return (
     <section
@@ -610,28 +503,19 @@ function FaqSection({ reducedMotion }: { reducedMotion: boolean }) {
       aria-label="Frequently Asked Questions"
       className="relative bg-slate-50 py-20 lg:py-28 overflow-hidden border-b border-slate-200/80"
     >
-      {/* Top gradient wash */}
       <div
-        className="
-          pointer-events-none absolute top-0 left-0 right-0 h-24
-          bg-gradient-to-b from-white/60 to-transparent
-        "
+        className="pointer-events-none absolute top-0 left-0 right-0 h-24
+                   bg-gradient-to-b from-white/60 to-transparent"
         aria-hidden="true"
       />
-
-      {/* Subtle dot-grid texture */}
       <div
-        className="
-          pointer-events-none absolute inset-0
-          bg-[radial-gradient(circle,#e2e8f0_1px,transparent_1px)]
-          bg-[size:32px_32px] opacity-30
-        "
+        className="pointer-events-none absolute inset-0
+                   bg-[radial-gradient(circle,#e2e8f0_1px,transparent_1px)]
+                   bg-[size:32px_32px] opacity-30"
         aria-hidden="true"
       />
 
       <div className="relative mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-
-        {/* Section heading */}
         <motion.div
           variants={reducedMotion ? {} : fadeUpVariant}
           custom={0}
@@ -648,48 +532,39 @@ function FaqSection({ reducedMotion }: { reducedMotion: boolean }) {
           />
         </motion.div>
 
-        {/* Accordion list */}
         <div className="flex flex-col gap-3">
-          {FAQ_ITEMS.map((item, itemIndex) => (
+          {FAQ_ITEMS.map((item, i) => (
             <FaqAccordionItem
               key={item.id}
               item={item}
               isOpen={openId === item.id}
               onToggle={() => handleToggle(item.id)}
-              index={itemIndex}
+              index={i}
               reducedMotion={reducedMotion}
             />
           ))}
         </div>
 
-        {/* Contact fallback beneath the accordion */}
         <motion.p
           variants={reducedMotion ? {} : fadeUpVariant}
           custom={0.35}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.5 }}
-          className="
-            mt-8 text-center
-            font-mono text-[10px] uppercase tracking-widest text-slate-400
-          "
+          className="mt-8 text-center font-mono text-[10px] uppercase tracking-widest text-slate-400"
         >
           More questions?{" "}
           <a
             href="https://instagram.com/cpbyte_kiet"
             target="_blank"
             rel="noopener noreferrer"
-            className="
-              text-brand-blue hover:underline
-              focus-visible:outline focus-visible:outline-2
-              focus-visible:outline-offset-1 focus-visible:outline-brand-blue
-              rounded-sm
-            "
+            className="text-brand-blue hover:underline focus-visible:outline
+                       focus-visible:outline-2 focus-visible:outline-offset-1
+                       focus-visible:outline-brand-blue rounded-sm"
           >
             DM @cpbyte_kiet on Instagram
           </a>
         </motion.p>
-
       </div>
     </section>
   );
@@ -697,69 +572,52 @@ function FaqSection({ reducedMotion }: { reducedMotion: boolean }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FooterSection
-// Four-column layout: Brand + tagline / Navigation / Community / CTA
-// Signature element: font-mono compiler-output build info line at the bottom
 // ─────────────────────────────────────────────────────────────────────────────
 
 function FooterSection() {
   return (
-    <footer
-      id="footer"
-      aria-label="Site footer"
-      className="relative bg-white border-t border-slate-200"
-    >
-      {/* Four-colour accent bar — mirrors SectionDivider, brackets the full page */}
+    <footer id="footer" aria-label="Site footer" className="relative bg-white border-t border-slate-200">
+
+      {/* Four-colour accent bar at top */}
       <div className="flex w-full h-[3px]" aria-hidden="true">
-        <div className="flex-1 bg-brand-blue" />
+        <div className="flex-1 bg-brand-blue"   />
         <div className="flex-1 bg-brand-yellow" />
-        <div className="flex-1 bg-brand-green" />
-        <div className="flex-1 bg-brand-red" />
+        <div className="flex-1 bg-brand-green"  />
+        <div className="flex-1 bg-brand-red"    />
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 pb-8">
 
-        {/* ── Main four-column grid ── */}
+        {/* Four-column grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 mb-12">
 
-          {/* Column 1: Brand */}
+          {/* Brand */}
           <div className="lg:col-span-1 flex flex-col gap-4">
             <a
               href="/"
               aria-label="CodeRush home"
-              className="
-                flex items-center
-                opacity-100 hover:opacity-75
-                transition-opacity duration-150
-                focus-visible:outline focus-visible:outline-2
-                focus-visible:outline-offset-2 focus-visible:outline-brand-blue
-                rounded-sm w-fit
-              "
+              className="flex items-center opacity-100 hover:opacity-75 transition-opacity duration-150
+                         focus-visible:outline focus-visible:outline-2
+                         focus-visible:outline-offset-2 focus-visible:outline-brand-blue rounded-sm w-fit"
             >
               <Image
                 src="/assets/logo.png"
                 alt="CodeRush by CPBYTE KIET"
-                width={120}
-                height={34}
+                width={120} height={34}
                 className="h-8 w-auto object-contain"
               />
             </a>
-
             <p className="font-sans text-xs text-slate-500 leading-relaxed max-w-[200px]">
               The flagship competitive programming contest by CPBYTE — KIET Group of Institutions.
             </p>
-
-            <span
-              className="
-                w-fit font-mono text-[10px] uppercase tracking-widest
-                text-brand-blue border border-brand-blue/20 bg-brand-blue/5
-                px-2.5 py-1 rounded-full
-              "
-            >
+            <span className="w-fit font-mono text-[10px] uppercase tracking-widest
+                             text-brand-blue border border-brand-blue/20 bg-brand-blue/5
+                             px-2.5 py-1 rounded-full">
               {CONTEST_EDITION}
             </span>
           </div>
 
-          {/* Column 2: Navigation */}
+          {/* Navigation */}
           <div className="flex flex-col gap-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-slate-400 mb-1">
               Navigate
@@ -768,26 +626,21 @@ function FooterSection() {
               <a
                 key={link.href}
                 href={link.href}
-                className="
-                  font-sans text-sm text-slate-500
-                  hover:text-brand-dark
-                  transition-colors duration-150
-                  focus-visible:outline focus-visible:outline-2
-                  focus-visible:outline-offset-1 focus-visible:outline-brand-blue
-                  rounded-sm w-fit
-                "
+                className="font-sans text-sm text-slate-500 hover:text-brand-dark
+                           transition-colors duration-150 focus-visible:outline
+                           focus-visible:outline-2 focus-visible:outline-offset-1
+                           focus-visible:outline-brand-blue rounded-sm w-fit"
               >
                 {link.label}
               </a>
             ))}
           </div>
 
-          {/* Column 3: Community links */}
+          {/* Community */}
           <div className="flex flex-col gap-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-slate-400 mb-1">
               CPBYTE Community
             </p>
-
             {FOOTER_SOCIAL_LINKS.map(({ label, href, Icon }) => (
               <a
                 key={label}
@@ -795,15 +648,11 @@ function FooterSection() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`CPBYTE on ${label}`}
-                className="
-                  inline-flex items-center gap-2
-                  font-sans text-sm text-slate-500
-                  hover:text-brand-dark
-                  transition-colors duration-150
-                  focus-visible:outline focus-visible:outline-2
-                  focus-visible:outline-offset-1 focus-visible:outline-brand-blue
-                  rounded-sm w-fit group
-                "
+                className="inline-flex items-center gap-2 font-sans text-sm text-slate-500
+                           hover:text-brand-dark transition-colors duration-150
+                           focus-visible:outline focus-visible:outline-2
+                           focus-visible:outline-offset-1 focus-visible:outline-brand-blue
+                           rounded-sm w-fit group"
               >
                 <Icon
                   size={14}
@@ -813,21 +662,15 @@ function FooterSection() {
                 {label}
               </a>
             ))}
-
-            {/* KIET website link */}
             <a
               href="https://www.kiet.edu"
               target="_blank"
               rel="noopener noreferrer"
-              className="
-                inline-flex items-center gap-2
-                font-sans text-sm text-slate-500
-                hover:text-brand-dark
-                transition-colors duration-150
-                focus-visible:outline focus-visible:outline-2
-                focus-visible:outline-offset-1 focus-visible:outline-brand-blue
-                rounded-sm w-fit group
-              "
+              className="inline-flex items-center gap-2 font-sans text-sm text-slate-500
+                         hover:text-brand-dark transition-colors duration-150
+                         focus-visible:outline focus-visible:outline-2
+                         focus-visible:outline-offset-1 focus-visible:outline-brand-blue
+                         rounded-sm w-fit group"
             >
               <ExternalLink
                 size={14}
@@ -839,38 +682,30 @@ function FooterSection() {
             </a>
           </div>
 
-          {/* Column 4: CTA block */}
+          {/* CTA */}
           <div className="flex flex-col gap-4">
             <p className="font-mono text-[10px] uppercase tracking-widest text-slate-400 mb-1">
               Register
             </p>
-
             <p className="font-sans text-xs text-slate-500 leading-relaxed">
               Registrations close on{" "}
               <span className="font-semibold text-slate-700">{REGISTRATION_DEADLINE}</span>.
               Secure your slot on Unstop before the deadline.
             </p>
-
             <a
               href={UNSTOP_HREF}
               target="_blank"
               rel="noopener noreferrer"
-              className="
-                inline-flex items-center justify-center gap-2
-                bg-brand-blue hover:bg-brand-blue/90 active:scale-[0.98]
-                text-white font-mono text-xs font-medium uppercase tracking-widest
-                rounded-md px-5 py-2.5
-                shadow-md shadow-brand-blue/20
-                transition-all duration-200
-                focus-visible:outline focus-visible:outline-2
-                focus-visible:outline-offset-2 focus-visible:outline-brand-blue
-                w-full sm:w-fit
-              "
+              className="inline-flex items-center justify-center gap-2
+                         bg-brand-blue hover:bg-brand-blue/90 active:scale-[0.98]
+                         text-white font-mono text-xs font-medium uppercase tracking-widest
+                         rounded-md px-5 py-2.5 shadow-md shadow-brand-blue/20
+                         transition-all duration-200 focus-visible:outline focus-visible:outline-2
+                         focus-visible:outline-offset-2 focus-visible:outline-brand-blue w-full sm:w-fit"
             >
               Register on Unstop
               <ExternalLink size={11} strokeWidth={2.5} aria-hidden="true" />
             </a>
-
             <span className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
               {CONTEST_DATES} · {CONTEST_VENUE}
             </span>
@@ -878,34 +713,126 @@ function FooterSection() {
 
         </div>
 
-        {/* ── Bottom bar ── */}
+        {/* Bottom bar */}
         <div className="h-px bg-slate-100 mb-6" aria-hidden="true" />
-
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-sans text-xs text-slate-400 text-center sm:text-left">
             &copy; {CURRENT_YEAR} {ORGANISER_NAME}. All rights reserved.
           </p>
-
-          {/* Compiler-style build info line — signature footer element */}
           <p
-            className="
-              font-mono text-[10px] text-slate-300 tracking-widest uppercase
-              text-center sm:text-right select-none
-            "
+            className="font-mono text-[10px] text-slate-300 tracking-widest uppercase
+                       text-center sm:text-right select-none"
             aria-hidden="true"
           >
             CPBYTE · KIET · Season IV · CodeRush
           </p>
         </div>
-
       </div>
+
+      {/* ── Coding phrases marquee — below footer bottom bar ──
+          Two rows of big bold font-mono competitive programming phrases.
+          Row 1 scrolls left, Row 2 scrolls right (reverse).
+          Dark bg so it contrasts sharply with the white footer above —
+          acts as a dramatic page-closing "curtain".
+          Text is large (text-4xl sm:text-5xl) so individual phrases
+          fill the viewport width and feel editorial / Olympic.       */}
+      <div
+        className="border-t border-slate-900 bg-brand-dark overflow-hidden py-5"
+        aria-hidden="true"
+      >
+        {/* Edge fades — slate-900 based so they match the dark bg */}
+        <div
+          className="pointer-events-none absolute left-0 w-24 z-10"
+          style={{
+            top: "auto",
+            background: "linear-gradient(to right, #1E293B, transparent)",
+            height: "100%",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute right-0 w-24 z-10"
+          style={{
+            top: "auto",
+            background: "linear-gradient(to left, #1E293B, transparent)",
+            height: "100%",
+          }}
+        />
+
+        {/* Row 1 — phrases scroll left */}
+        <div className="flex overflow-hidden mb-3">
+          <div
+            className="flex flex-nowrap whitespace-nowrap animate-marquee"
+            style={{ willChange: "transform", animationDuration: "40s" }}
+          >
+            {MARQUEE_PHRASES_1.map((phrase, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-6 mx-6"
+              >
+                <span
+                  className="font-mono font-black uppercase tracking-widest leading-none
+                             text-3xl sm:text-4xl lg:text-5xl"
+                  style={{ color: "rgba(255,255,255,0.08)" }}
+                >
+                  {phrase}
+                </span>
+                {/* Accent dot separator in brand colour cycling */}
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: ["#1D4ED8","#F59E0B","#16A34A","#DC2626"][i % 4],
+                    opacity: 0.5,
+                  }}
+                />
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2 — phrases scroll right */}
+        <div className="flex overflow-hidden">
+          <div
+            className="flex flex-nowrap whitespace-nowrap animate-marquee"
+            style={{
+              willChange: "transform",
+              animationDirection: "reverse",
+              animationDuration: "48s",
+              animationDelay: "-8s",
+            }}
+          >
+            {MARQUEE_PHRASES_2.map((phrase, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-6 mx-6"
+              >
+                <span
+                  className="font-mono font-black uppercase tracking-widest leading-none
+                             text-3xl sm:text-4xl lg:text-5xl"
+                  style={{ color: "rgba(255,255,255,0.08)" }}
+                >
+                  {phrase}
+                </span>
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: ["#DC2626","#16A34A","#F59E0B","#1D4ED8"][i % 4],
+                    opacity: 0.5,
+                  }}
+                />
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
     </footer>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Default export — all three sections co-located to share the
-// reducedMotion hook without a context provider or prop drilling.
+// Default export
+// NOTE: EligibilitySection is intentionally NOT rendered here.
+// It is already rendered by TimelineEligibility.tsx to avoid duplication.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function EndSectors() {
