@@ -729,59 +729,51 @@ function FooterSection() {
         </div>
       </div>
 
-      {/* ── Coding phrases marquee — below footer bottom bar ──
-          Two rows of big bold font-mono competitive programming phrases.
-          Row 1 scrolls left, Row 2 scrolls right (reverse).
-          Dark bg so it contrasts sharply with the white footer above —
-          acts as a dramatic page-closing "curtain".
-          Text is large (text-4xl sm:text-5xl) so individual phrases
-          fill the viewport width and feel editorial / Olympic.       */}
+      {/* ── Coding phrases marquee ──
+          position: relative is REQUIRED so the edge-fade absolute divs
+          are scoped to this container and do not escape to the footer.
+          overflow-hidden clips the scrolling tracks.
+          No extra margin/padding outside this div — eliminates the white gap. */}
       <div
-        className="border-t border-slate-900 bg-brand-dark overflow-hidden py-5"
+        className="relative border-t border-slate-800 bg-brand-dark overflow-hidden py-5"
         aria-hidden="true"
       >
-        {/* Edge fades — slate-900 based so they match the dark bg */}
+        {/* Edge fades — scoped correctly because parent is position:relative */}
         <div
-          className="pointer-events-none absolute left-0 w-24 z-10"
-          style={{
-            top: "auto",
-            background: "linear-gradient(to right, #1E293B, transparent)",
-            height: "100%",
-          }}
+          className="pointer-events-none absolute inset-y-0 left-0 w-20 z-10"
+          style={{ background: "linear-gradient(to right, #1E293B, transparent)" }}
         />
         <div
-          className="pointer-events-none absolute right-0 w-24 z-10"
-          style={{
-            top: "auto",
-            background: "linear-gradient(to left, #1E293B, transparent)",
-            height: "100%",
-          }}
+          className="pointer-events-none absolute inset-y-0 right-0 w-20 z-10"
+          style={{ background: "linear-gradient(to left, #1E293B, transparent)" }}
         />
 
-        {/* Row 1 — phrases scroll left */}
+        {/* Row 1 — scrolls left at 55s (slow, readable) 
+            animationDuration inline style wins over the class-defined 25s
+            because inline > class in CSS specificity. We also reset
+            animation-name explicitly so the duration applies cleanly. */}
         <div className="flex overflow-hidden mb-3">
           <div
-            className="flex flex-nowrap whitespace-nowrap animate-marquee"
-            style={{ willChange: "transform", animationDuration: "40s" }}
+            className="flex flex-nowrap whitespace-nowrap"
+            style={{
+              willChange: "transform",
+              animation: "marquee 55s linear infinite",
+            }}
           >
             {MARQUEE_PHRASES_1.map((phrase, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-6 mx-6"
-              >
+              <span key={i} className="inline-flex items-center gap-6 mx-8">
                 <span
                   className="font-mono font-black uppercase tracking-widest leading-none
                              text-3xl sm:text-4xl lg:text-5xl"
-                  style={{ color: "rgba(255,255,255,0.08)" }}
+                  style={{ color: "rgba(255,255,255,0.10)" }}
                 >
                   {phrase}
                 </span>
-                {/* Accent dot separator in brand colour cycling */}
                 <span
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{
                     backgroundColor: ["#1D4ED8","#F59E0B","#16A34A","#DC2626"][i % 4],
-                    opacity: 0.5,
+                    opacity: 0.45,
                   }}
                 />
               </span>
@@ -789,26 +781,22 @@ function FooterSection() {
           </div>
         </div>
 
-        {/* Row 2 — phrases scroll right */}
+        {/* Row 2 — scrolls right at 68s (even slower, slightly offset) */}
         <div className="flex overflow-hidden">
           <div
-            className="flex flex-nowrap whitespace-nowrap animate-marquee"
+            className="flex flex-nowrap whitespace-nowrap"
             style={{
               willChange: "transform",
-              animationDirection: "reverse",
-              animationDuration: "48s",
-              animationDelay: "-8s",
+              animation: "marquee 68s linear infinite reverse",
+              animationDelay: "-10s",
             }}
           >
             {MARQUEE_PHRASES_2.map((phrase, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-6 mx-6"
-              >
+              <span key={i} className="inline-flex items-center gap-6 mx-8">
                 <span
                   className="font-mono font-black uppercase tracking-widest leading-none
                              text-3xl sm:text-4xl lg:text-5xl"
-                  style={{ color: "rgba(255,255,255,0.08)" }}
+                  style={{ color: "rgba(255,255,255,0.10)" }}
                 >
                   {phrase}
                 </span>
@@ -816,7 +804,7 @@ function FooterSection() {
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{
                     backgroundColor: ["#DC2626","#16A34A","#F59E0B","#1D4ED8"][i % 4],
-                    opacity: 0.5,
+                    opacity: 0.45,
                   }}
                 />
               </span>
