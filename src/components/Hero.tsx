@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowDown, ExternalLink, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import {
@@ -190,7 +190,6 @@ function FourBarAccent() {
 
 export default function Hero() {
   const shouldReduceMotion = useReducedMotion() ?? false;
-  const [videoLoaded, setVideoLoaded] = useState(false);
 
   return (
     <>
@@ -213,72 +212,56 @@ export default function Hero() {
 
       <section
         className="relative w-full min-h-screen overflow-hidden"
-        style={{ backgroundColor: "#f0f4ff" }}
+        style={{ backgroundColor: "#0F172A" }}
         aria-label="Hero section"
       >
 
-        {/* ── LAYER 1: Full-bleed video ── */}
+        {/* ── LAYER 1: Full-bleed video ──
+            New video: hero-bg.mp4 (attached cinematic shot)
+            Fallback: hero-stream.mp4
+            object-cover fills the entire viewport at any aspect ratio.    */}
         <div className="absolute inset-0 z-0">
           <video
             src="/assets/hero-stream.mp4"
             autoPlay muted loop playsInline
-            onCanPlay={() => setVideoLoaded(true)}
             className="absolute inset-0 w-full h-full object-cover"
             aria-hidden="true"
           />
 
-          {/* Light overlay — brightens video so it reads as a "day arena"
-              Top: strong white wash keeps header readable
-              Mid: near-transparent — video breathes through
-              Bottom: white fade — transitions cleanly into the next section */}
-          <AnimatePresence>
-            {videoLoaded && (
-              <motion.div
-                className="absolute inset-0 z-10"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1.0 }}
-                style={{
-                  background:
-                    "linear-gradient(to bottom," +
-                    "rgba(255,255,255,0.70) 0%," +
-                    "rgba(255,255,255,0.30) 35%," +
-                    "rgba(255,255,255,0.38) 65%," +
-                    "rgba(255,255,255,0.88) 100%)",
-                }}
-              />
-            )}
-          </AnimatePresence>
-
-          {/* Always-on fallback overlay before video loads */}
+          {/* Dark cinematic overlay — video clearly visible in the mid zone.
+              Top: darker so navbar + eyebrow pill read cleanly.
+              Mid (35–65%): lightest — this is where the video breathes through.
+              Bottom: heavy dark so white frosted cards and stats pop against it.
+              This is the correct production approach for a dark hero video. */}
           <div
             className="absolute inset-0 z-10"
             style={{
               background:
                 "linear-gradient(to bottom," +
-                "rgba(255,255,255,0.65) 0%," +
-                "rgba(255,255,255,0.25) 40%," +
-                "rgba(255,255,255,0.35) 65%," +
-                "rgba(255,255,255,0.85) 100%)",
+                "rgba(0,0,0,0.60) 0%," +
+                "rgba(0,0,0,0.35) 30%," +
+                "rgba(0,0,0,0.28) 55%," +
+                "rgba(0,0,0,0.65) 80%," +
+                "rgba(0,0,0,0.85) 100%)",
             }}
           />
         </div>
 
-        {/* ── LAYER 2: Ambient colour orbs ── */}
+        {/* ── LAYER 2: Ambient colour orbs — dark context versions ── */}
         <div className="pointer-events-none absolute inset-0 z-10" aria-hidden="true">
-          {/* Blue orb — top-left */}
+          {/* Brand-blue glow — top-left */}
           <div
-            className="absolute -top-40 -left-40 w-[650px] h-[650px] rounded-full"
+            className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full"
             style={{
-              background: "radial-gradient(circle, rgba(29,78,216,0.18) 0%, transparent 65%)",
+              background: "radial-gradient(circle, rgba(29,78,216,0.25) 0%, transparent 65%)",
               animation:  "hero-glow-pulse 6s ease-in-out infinite",
             }}
           />
-          {/* Olympic torch warmth — bottom-right */}
+          {/* Torch flame warmth — bottom-right */}
           <div
-            className="absolute -bottom-32 -right-32 w-[550px] h-[550px] rounded-full"
+            className="absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full"
             style={{
-              background: "radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 65%)",
+              background: "radial-gradient(circle, rgba(220,38,38,0.18) 0%, transparent 65%)",
               animation:  "hero-glow-pulse 7s 1.5s ease-in-out infinite",
             }}
           />
@@ -286,7 +269,7 @@ export default function Hero() {
           <div
             className="absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full"
             style={{
-              background: "radial-gradient(circle, rgba(245,158,11,0.10) 0%, transparent 65%)",
+              background: "radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 65%)",
               animation:  "hero-glow-pulse 8s 0.8s ease-in-out infinite",
             }}
           />
@@ -324,9 +307,9 @@ export default function Hero() {
               className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest
                          px-4 py-2 rounded-full backdrop-blur-sm"
               style={{
-                color: "#1E293B",
-                border: "1px solid rgba(29,78,216,0.25)",
-                background: "rgba(255,255,255,0.70)",
+                color:      "rgba(255,255,255,0.80)",
+                border:     "1px solid rgba(255,255,255,0.18)",
+                background: "rgba(0,0,0,0.35)",
               }}
             >
               <span className="relative flex h-1.5 w-1.5">
@@ -369,12 +352,12 @@ export default function Hero() {
                     className="font-sans font-black leading-none tracking-tighter select-none inline-block"
                     style={{
                       fontSize: "clamp(72px, 14vw, 180px)",
-                      // Dark brand-dark colour — reads clearly on brightened video
-                      color: "#0F172A",
+                      // Pure white — reads perfectly on dark video overlay
+                      color: "#FFFFFF",
                       textShadow:
                         lineIdx === 1
-                          ? "0 2px 24px rgba(249,115,22,0.25), 0 1px 0 rgba(255,255,255,0.8)"
-                          : "0 1px 0 rgba(255,255,255,0.6)",
+                          ? "0 0 80px rgba(249,115,22,0.45), 0 2px 0 rgba(0,0,0,0.3)"
+                          : "0 2px 0 rgba(0,0,0,0.2)",
                     }}
                   >
                     {char}
@@ -410,7 +393,7 @@ export default function Hero() {
           {/* Tagline */}
           <motion.p
             className="text-center font-sans text-base sm:text-lg leading-relaxed mb-9 max-w-lg mx-auto px-6"
-            style={{ color: "#334155" }}
+            style={{ color: "rgba(255,255,255,0.75)" }}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -427,11 +410,11 @@ export default function Hero() {
             animate={{ opacity: 1 }}
             transition={{ delay: 1.05, duration: 0.5 }}
           >
-            <span className="font-mono text-[11px] uppercase tracking-widest text-slate-500">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-white/55">
               {CONTEST_DATES}
             </span>
-            <span className="text-slate-300 font-mono" aria-hidden="true">·</span>
-            <span className="font-mono text-[11px] uppercase tracking-widest text-slate-500">
+            <span className="text-white/25 font-mono" aria-hidden="true">·</span>
+            <span className="font-mono text-[11px] uppercase tracking-widest text-white/55">
               {CONTEST_VENUE}
             </span>
           </motion.div>
@@ -465,29 +448,27 @@ export default function Hero() {
                 className="transition-transform duration-150 group-hover:translate-x-0.5" />
             </a>
 
-            {/* Secondary */}
             <a
               href="#about"
               className="
                 inline-flex items-center gap-2
                 backdrop-blur-sm
-                font-mono text-sm
+                font-mono text-sm text-white/85
                 rounded-md px-7 py-3.5
                 transition-all duration-200
                 focus-visible:outline focus-visible:outline-2
-                focus-visible:outline-offset-2 focus-visible:outline-brand-blue
+                focus-visible:outline-offset-2 focus-visible:outline-white
                 group
               "
               style={{
-                color: "#1E293B",
-                background: "rgba(255,255,255,0.65)",
-                border: "1px solid rgba(30,41,59,0.2)",
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.25)",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.85)";
+                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.22)";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.65)";
+                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.12)";
               }}
             >
               Explore Details
@@ -506,9 +487,9 @@ export default function Hero() {
             <div
               className="inline-grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl overflow-hidden"
               style={{
-                border: "1px solid rgba(29,78,216,0.15)",
-                background: "rgba(255,255,255,0.55)",
-                backdropFilter: "blur(12px)",
+                border:          "1px solid rgba(255,255,255,0.12)",
+                background:      "rgba(255,255,255,0.07)",
+                backdropFilter:  "blur(16px)",
               }}
               role="list"
               aria-label="Contest statistics"
@@ -522,7 +503,7 @@ export default function Hero() {
                     ${i < STATS.length - 1 ? "border-r last:border-r-0" : ""}
                     ${i === 1 ? "border-r-0 sm:border-r" : ""}
                   `}
-                  style={{ borderColor: "rgba(29,78,216,0.10)" }}
+                  style={{ borderColor: "rgba(255,255,255,0.10)" }}
                 >
                   <AnimatedStat value={stat.value} label={stat.label} />
                 </div>
@@ -541,18 +522,18 @@ export default function Hero() {
               className="mx-4 mb-16 sm:mx-auto sm:max-w-3xl rounded-2xl px-6 py-4
                          grid grid-cols-2 sm:grid-cols-4 gap-4"
               style={{
-                background: "rgba(255,255,255,0.60)",
-                border: "1px solid rgba(29,78,216,0.12)",
-                backdropFilter: "blur(10px)",
+                background:     "rgba(0,0,0,0.30)",
+                border:         "1px solid rgba(255,255,255,0.12)",
+                backdropFilter: "blur(12px)",
               }}
               aria-label="Quick contest details"
             >
               {QUICK_FACTS.map((fact) => (
                 <div key={fact.label} className="flex flex-col gap-0.5">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-brand-blue">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-white/45">
                     {fact.label}
                   </span>
-                  <span className="font-sans text-xs font-semibold leading-snug text-slate-700">
+                  <span className="font-sans text-xs font-semibold leading-snug text-white/85">
                     {fact.value}
                   </span>
                 </div>
