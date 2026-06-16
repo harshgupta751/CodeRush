@@ -79,7 +79,7 @@ export default function AnnouncementBar() {
             className="font-mono text-[10px] uppercase tracking-widest font-semibold"
             style={{ color: "rgba(255,255,255,0.55)" }}
           >
-            CodeRush Season IV
+            CodeRush Season 3
           </span>
         </div>
 
