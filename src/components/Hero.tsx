@@ -224,7 +224,7 @@ export default function Hero() {
           <video
             src="/assets/hero-stream.mp4"
             autoPlay muted loop playsInline
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover scale-[1.08]"
             aria-hidden="true"
           />
 

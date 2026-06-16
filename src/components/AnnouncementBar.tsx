@@ -40,17 +40,16 @@ export default function AnnouncementBar() {
             alt="CPBYTE"
             width={60}
             height={20}
-            className="h-5 w-auto object-contain"
-            style={{ filter: "brightness(0) invert(1)" }}
+            className="h-10 w-auto object-contain"
           />
 
           {/* × separator */}
           <span
-            className="font-mono text-[11px] font-bold leading-none select-none"
+            className="font-mono text-[13px] font-bold leading-none select-none"
             style={{ color: "rgba(255,255,255,0.35)" }}
             aria-hidden="true"
           >
-            ×
+            x
           </span>
 
           {/* KIET logo */}
@@ -59,9 +58,14 @@ export default function AnnouncementBar() {
             alt="KIET Group of Institutions"
             width={60}
             height={20}
-            className="h-5 w-auto object-contain"
+            className="h-6 w-auto object-contain"
             style={{ filter: "brightness(0) invert(1)" }}
           />
+<span
+              className="font-mono text-[10px] tracking-wider text-white/85 uppercase hidden md:inline-block font-bold select-none"
+            >
+              KIET Deemed to be University
+            </span>
         </div>
 
         {/* Centre: event name — hidden on very small screens */}
