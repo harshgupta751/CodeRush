@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 
 // ─── Component imports ────────────────────────────────────────────────────────
+import AnnouncementBar    from "@/components/AnnouncementBar";
 import Navbar            from "@/components/Navbar";
 import Hero              from "@/components/Hero";
 import AboutOverview     from "@/components/AboutOverview";
@@ -186,25 +187,27 @@ export default function Page() {
 
   return (
     <>
+      {/* ── Announcement bar — sits above Navbar, fixed z-[60] ──────────── */}
+      {/* AnnouncementBar is z-[60], Navbar is z-50 — bar always on top.    */}
+      <AnnouncementBar />
+
       {/* ── Sticky navigation bar ─────────────────────────────────────── */}
       {/*
-        Navbar is rendered outside the main <main> landmark so it is not
-        counted as page content by screen readers navigating by landmark.
-        It manages its own `fixed top-0` positioning internally.
+        Navbar now uses `fixed top-9` internally (36px = height of
+        AnnouncementBar) so it sits directly below the announcement strip.
       */}
       <Navbar />
 
       {/* ── Main page content ─────────────────────────────────────────── */}
       <main id="main-content" aria-label="CodeRush main content">
 
-        {/* Skip-to-content anchor target — improves keyboard navigation.
-            The Navbar's "Register Now" and logo links are the first focusable
-            elements; this lets keyboard users jump straight to content. */}
+        {/* Skip-to-content — top-[6.25rem] = AnnouncementBar (36px) +
+            Navbar (64px) + 4px gap so it never overlaps either bar.       */}
         <a
           href="#main-content"
           className="
             sr-only focus:not-sr-only
-            fixed top-20 left-4 z-[60]
+            fixed top-[6.25rem] left-4 z-[60]
             bg-white border border-brand-blue text-brand-blue
             font-mono text-xs px-4 py-2 rounded-md
             focus-visible:outline focus-visible:outline-2

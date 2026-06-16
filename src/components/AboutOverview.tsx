@@ -807,16 +807,14 @@ function OverviewCard({
       className={`relative flex flex-col overflow-hidden rounded-2xl cursor-default
         ${card.wide ? "md:col-span-2" : "md:col-span-1"}`}
       style={{
-        background:     hovered
-          ? `rgba(255,255,255,0.94)`
-          : "rgba(255,255,255,0.88)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        border:     `1px solid ${hovered ? card.accentBorder : "rgba(255,255,255,0.70)"}`,
-        boxShadow:  hovered
-          ? `0 8px 40px ${card.accentShadow}, 0 2px 16px rgba(0,0,0,0.08)`
-          : "0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)",
-        transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s",
+        // Solid white bg — no backdrop-blur so the image behind is NOT blurred
+        // Cards pop as crisp white panels floating over the visible bg image
+        background:  hovered ? "#ffffff" : "rgba(255,255,255,0.96)",
+        border:      `1px solid ${hovered ? card.accentBorder : "rgba(30,41,59,0.10)"}`,
+        boxShadow:   hovered
+          ? `0 12px 48px ${card.accentShadow}, 0 4px 16px rgba(0,0,0,0.10)`
+          : "0 6px 28px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.05)",
+        transition:  "background 0.25s, border-color 0.25s, box-shadow 0.25s",
       }}
       aria-label={card.title}
     >
@@ -937,63 +935,44 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
     <section
       id="overview"
       aria-label="Contest Overview"
-      className="relative overflow-hidden py-20 lg:py-28"
+      className="relative overflow-hidden pt-16 pb-12 lg:pt-20 lg:pb-16"
     >
 
-      {/* ── LAYER 1: Background image ── */}
+      {/* ── LAYER 1: Background image — full-bleed, clearly visible ── */}
       <div className="absolute inset-0 z-0" aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/assets/overview-bg.jpg"
           alt=""
           className="w-full h-full object-cover object-center"
-          style={{ filter: "saturate(0.85) brightness(1.05)" }}
           aria-hidden="true"
         />
       </div>
 
-      {/* ── LAYER 2: Multi-stop white overlay ──
-          Top: very heavy white so heading text reads on brand-dark
-          Mid-upper: lightens — image starts bleeding through
-          Mid: near-transparent — image is most visible here, behind cards
-          Bottom: heavy white again for clean transition to next section    */}
+      {/* ── LAYER 2: Minimal scrim — only enough for text readability ──
+          No heavy white at top/bottom — image must be visible everywhere.
+          Only the absolute centre of the heading gets a mild white haze.
+          Cards float as solid white panels — they don't need an overlay.  */}
       <div
         className="pointer-events-none absolute inset-0 z-10"
         style={{
           background:
             "linear-gradient(to bottom," +
-            "rgba(255,255,255,0.96) 0%," +
-            "rgba(255,255,255,0.82) 12%," +
-            "rgba(255,255,255,0.38) 28%," +
-            "rgba(255,255,255,0.22) 50%," +
-            "rgba(255,255,255,0.38) 72%," +
-            "rgba(255,255,255,0.88) 88%," +
-            "rgba(255,255,255,0.98) 100%)",
+            "rgba(255,255,255,0.60) 0%," +
+            "rgba(255,255,255,0.15) 8%," +
+            "rgba(255,255,255,0.06) 20%," +
+            "rgba(255,255,255,0.04) 50%," +
+            "rgba(255,255,255,0.06) 80%," +
+            "rgba(255,255,255,0.15) 92%," +
+            "rgba(255,255,255,0.60) 100%)",
         }}
         aria-hidden="true"
       />
 
-      {/* ── LAYER 3: Micro dot-grid texture over image ── */}
+      {/* ── LAYER 3: Tiny brand-blue tint — ties image to CodeRush identity ── */}
       <div
         className="pointer-events-none absolute inset-0 z-10"
-        style={{
-          backgroundImage: "radial-gradient(circle, rgba(30,41,59,0.06) 1px, transparent 1px)",
-          backgroundSize:  "36px 36px",
-        }}
-        aria-hidden="true"
-      />
-
-      {/* ── LAYER 4: Ambient brand colour washes ──
-          Sit above the image overlay to add CodeRush brand identity
-          over the neutral coding screenshot                          */}
-      <div
-        className="pointer-events-none absolute -top-24 -left-24 w-[500px] h-[500px] rounded-full blur-3xl z-10"
-        style={{ background: "radial-gradient(circle, rgba(29,78,216,0.10) 0%, transparent 65%)" }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-16 -right-16 w-[420px] h-[420px] rounded-full blur-3xl z-10"
-        style={{ background: "radial-gradient(circle, rgba(220,38,38,0.08) 0%, transparent 65%)" }}
+        style={{ background: "rgba(29,78,216,0.03)" }}
         aria-hidden="true"
       />
 
@@ -1007,16 +986,17 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center mb-14 lg:mb-20"
+          className="text-center mb-8 lg:mb-12"
         >
           {/* Eyebrow pill — frosted so image shows through */}
           <div className="flex justify-center mb-5">
             <span
               className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest
-                         text-brand-blue px-4 py-2 rounded-full backdrop-blur-sm"
+                         text-brand-blue px-4 py-2 rounded-full"
               style={{
-                border:     "1px solid rgba(29,78,216,0.25)",
-                background: "rgba(255,255,255,0.75)",
+                border:     "1px solid rgba(29,78,216,0.30)",
+                background: "rgba(255,255,255,0.92)",
+                boxShadow:  "0 2px 12px rgba(0,0,0,0.08)",
               }}
             >
               <span className="relative flex h-1.5 w-1.5">
@@ -1027,32 +1007,34 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
             </span>
           </div>
 
-          {/* Main heading */}
+          {/* Main heading — strong white halo for readability over visible image */}
           <h2
             className="font-sans font-black text-brand-dark tracking-tight mb-4"
-            style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", lineHeight: 1.05 }}
+            style={{
+              fontSize:   "clamp(2rem, 5vw, 3.5rem)",
+              lineHeight: 1.05,
+              textShadow:
+                "0 0 20px rgba(255,255,255,1), " +
+                "0 0 40px rgba(255,255,255,0.95), " +
+                "0 2px 8px rgba(255,255,255,0.9)",
+            }}
           >
             Everything a competitive{" "}
             <br className="hidden sm:block" />
-            <span
-              style={{
-                background:           "linear-gradient(135deg, #1D4ED8 0%, #7c3aed 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor:  "transparent",
-                backgroundClip:       "text",
-              }}
-            >
+            {/* Solid colour — no webkit gradient which blurs on dark image backgrounds */}
+            <span style={{ color: "#1D4ED8" }}>
               programmer needs.
             </span>
           </h2>
 
-          {/* Subheading — subtle frosted pill so image peeks through */}
+          {/* Subheading — strong white pill so it reads over dark parts of image */}
           <p
-            className="font-sans text-[15px] leading-relaxed max-w-xl mx-auto px-4 py-2 rounded-xl"
+            className="font-sans text-[15px] leading-relaxed max-w-xl mx-auto px-5 py-2.5 rounded-xl"
             style={{
-              color:      "#475569",
-              background: "rgba(255,255,255,0.60)",
-              backdropFilter: "blur(4px)",
+              color:      "#334155",
+              background: "rgba(255,255,255,0.92)",
+              border:     "1px solid rgba(30,41,59,0.08)",
+              boxShadow:  "0 2px 12px rgba(0,0,0,0.06)",
             }}
           >
             Four pillars that define the CodeRush experience — hover each card to explore.
@@ -1097,15 +1079,15 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, amount: 0.5 }}
           transition={{ delay: 0.5, duration: 0.5 }}
-          className="mt-12 flex justify-center items-center gap-4"
+          className="mt-8 flex justify-center items-center gap-4"
         >
           <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-slate-300/50" aria-hidden="true" />
           <p
             className="font-mono text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-full"
             style={{
-              color:      "#94a3b8",
-              background: "rgba(255,255,255,0.70)",
-              backdropFilter: "blur(4px)",
+              color:      "#64748b",
+              background: "rgba(255,255,255,0.92)",
+              border:     "1px solid rgba(30,41,59,0.08)",
             }}
           >
             Custom online judge · Plagiarism detection · Real-time scoring

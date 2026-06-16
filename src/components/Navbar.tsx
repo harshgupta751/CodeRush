@@ -118,7 +118,7 @@ export default function Navbar() {
     <>
       <header
         className={`
-          fixed top-0 left-0 right-0 z-50
+          fixed top-9 left-0 right-0 z-50
           bg-white/80 backdrop-blur-md border-b border-slate-200/80
           transition-shadow duration-300
           ${scrolled ? "shadow-sm shadow-slate-900/5" : "shadow-none"}
@@ -234,8 +234,8 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* ── Spacer to offset fixed header ── */}
-      <div className="h-16" aria-hidden="true" />
+      {/* ── Spacer — AnnouncementBar (36px) + Navbar (64px) = 100px ── */}
+      <div className="h-[100px]" aria-hidden="true" />
     </>
   );
 }
