@@ -66,10 +66,12 @@ function RegisterButton({ className = "" }: { className?: string }) {
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
+  useEffect(() => setMounted(true), []);
   // Shadow elevation on scroll
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -117,6 +119,7 @@ export default function Navbar() {
   return (
     <>
       <header
+      suppressHydrationWarning
         className={`
           fixed top-9 left-0 right-0 z-50
           bg-white/80 backdrop-blur-md border-b border-slate-200/80
@@ -196,8 +199,9 @@ export default function Navbar() {
           role="region"
           aria-label="Mobile navigation"
           className={`
-            lg:hidden overflow-hidden transition-all duration-300 ease-in-out
-            ${menuOpen ? "max-h-[32rem] opacity-100" : "max-h-0 opacity-0"}
+ lg:hidden overflow-hidden
+  ${mounted ? "transition-all duration-300 ease-in-out" : ""}
+  ${menuOpen ? "max-h-[32rem] opacity-100" : "max-h-0 opacity-0"}
             border-t border-slate-200/80 bg-white/95 backdrop-blur-md
           `}
         >

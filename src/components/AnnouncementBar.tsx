@@ -17,10 +17,25 @@
 //   — Navbar must add `top-9` instead of `top-0` so it sits below this bar.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { CONTEST_DATES } from "@/lib/constants";
 
 export default function AnnouncementBar() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+    if (!mounted) {
+    return (
+      <div
+        className="fixed top-0 left-0 right-0 z-[60]"
+        style={{ height: "38px" }}   // h-9 (36px) + h-[2px] strip = 38px
+        aria-hidden="true"
+      />
+    );
+  }
+
+
   return (
     <div
       className="fixed top-0 left-0 right-0 z-[60]"

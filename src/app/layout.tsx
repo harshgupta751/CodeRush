@@ -24,7 +24,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${sansFont.variable} ${monoFont.variable} antialiased bg-slate-50 text-slate-900 font-sans`}>
+      <body
+        suppressHydrationWarning
+       className={`${sansFont.variable} ${monoFont.variable} antialiased bg-slate-50 text-slate-900 font-sans`}>
         {children}
       </body>
     </html>
