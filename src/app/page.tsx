@@ -50,7 +50,7 @@ export default function Page() {
           href="#main-content"
           className="
             sr-only focus:not-sr-only
-            fixed top-[6.25rem] left-4 z-[60]
+            fixed top-[106px] left-4 z-[60]
             bg-white border border-brand-blue text-brand-blue
             font-mono text-xs px-4 py-2 rounded-md
             focus-visible:outline focus-visible:outline-2
