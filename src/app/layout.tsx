@@ -114,7 +114,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth scroll-pt-[102px]">
       <body
         suppressHydrationWarning
         className={`${sansFont.variable} ${monoFont.variable} antialiased bg-slate-50 text-slate-900 font-sans`}
