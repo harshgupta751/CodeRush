@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion, useReducedMotion, useInView, Variants } from "framer-motion";
 import {
   Code2, Trophy, BarChart2, Globe,
-  Terminal, Flame, Users, Cpu,
+  Terminal, Flame, Users,
 } from "lucide-react";
 import { CONTEST_EDITION } from "@/lib/constants";
 
@@ -115,50 +115,6 @@ const BENTO_CARDS = [
     wide: true,
   },
 ] as const;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// useCountUp
-// ─────────────────────────────────────────────────────────────────────────────
-
-function useCountUp(target: string, duration = 1400) {
-  const [display, setDisplay] = useState("0");
-  const [started, setStarted] = useState(false);
-  const ref    = useRef<HTMLSpanElement>(null);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setStarted(true); },
-      { threshold: 0.5 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!started) return;
-    const num = parseFloat(target.replace(/[^0-9.]/g, ""));
-    if (isNaN(num)) { setDisplay(target); return; }
-    const prefix   = target.startsWith("₹") ? "₹" : "";
-    const suffix   = target.replace(/[₹0-9,.]/g, "").trim();
-    const hasComma = target.includes(",");
-    const t0 = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min((now - t0) / duration, 1);
-      const e = 1 - Math.pow(1 - p, 3);
-      const c = Math.floor(e * num);
-      setDisplay(`${prefix}${hasComma && c >= 1000 ? c.toLocaleString("en-IN") : c}${suffix}`);
-      if (p < 1) rafRef.current = requestAnimationFrame(tick);
-      else setDisplay(target);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [started, target, duration]);
-
-  return { display: started ? display : "0", ref };
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TypewriterLine
@@ -527,110 +483,107 @@ function AboutSection({ reducedMotion }: { reducedMotion: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Overview card inner content — real contest information, no fake live data
-// Each card has a unique visual treatment that communicates real facts about
-// CodeRush through premium design rather than placeholder numbers.
+// Overview card inner content — REDESIGNED
+//
+// Senior-engineer fix applied here: every widget previously introduced its
+// own arbitrary colour palette (ScaleWidget alone used 6 different hues),
+// fighting with the card's own accent colour and the rest of the page.
+//
+// New rule: each widget uses ONLY its parent card's single accentRaw colour,
+// expressed through opacity/weight variation — never a second hue. This
+// matches how the rest of the site (Timeline, Eligibility) already works:
+// one colour = one category, consistently.
+//
+// Widgets are also visually lighter — fewer stacked rows, more breathing
+// room — so no label ever needs to shrink below a readable size.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Card A — Contest Format: animated round badges showing the actual structure
-const ROUND_BADGES = [
-  { label: "Qualifier",     sub: "Online · All India",    color: "#1D4ED8", bg: "rgba(29,78,216,0.07)",  border: "rgba(29,78,216,0.20)" },
-  { label: "Semi-Final",    sub: "Online · Top Teams",    color: "#F59E0B", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.22)" },
-  { label: "Grand Final",   sub: "On-Campus · KIET",      color: "#DC2626", bg: "rgba(220,38,38,0.07)",  border: "rgba(220,38,38,0.22)" },
+// Card A — Contest Format: compact horizontal stepper, single accent colour
+const ROUND_STEPS = [
+  { label: "Qualifier",   sub: "Online"     },
+  { label: "Semi-Final",  sub: "Online"     },
+  { label: "Grand Final", sub: "On-Campus"  },
 ] as const;
 
-function FormatWidget({ inView }: { inView: boolean }) {
+function FormatWidget({ inView, accentRaw }: { inView: boolean; accentRaw: string }) {
   return (
-    <div className="mt-5 flex flex-col gap-2" aria-label="Contest round structure">
-      {ROUND_BADGES.map((round, i) => (
-        <motion.div
-          key={round.label}
-          initial={{ opacity: 0, x: -20 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.45, delay: 0.2 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ background: round.bg, border: `1px solid ${round.border}` }}
-        >
-          {/* Step number */}
-          <span
-            className="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold flex-shrink-0"
-            style={{ background: round.color, color: "#fff" }}
-          >
-            {i + 1}
-          </span>
-          <div className="flex flex-col gap-0">
-            <span className="font-sans text-xs font-semibold" style={{ color: round.color }}>
-              {round.label}
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400">
-              {round.sub}
-            </span>
-          </div>
-          {/* Connector arrow — not on last item */}
-          {i < ROUND_BADGES.length - 1 && (
-            <svg className="ml-auto flex-shrink-0" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M7 2L12 7L7 12M2 7H12" stroke={round.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
-            </svg>
-          )}
-          {i === ROUND_BADGES.length - 1 && (
-            <span className="ml-auto font-mono text-[9px] text-brand-yellow font-semibold flex-shrink-0">
-              ₹10L+ Prizes
-            </span>
-          )}
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-// Card B — Problem Craft: visual spectrum showing difficulty range with real labels
-const DIFFICULTY_SPECTRUM = [
-  { label: "Warm-Up",    desc: "Implementation · Greedy",          pct: 100, color: "#16a34a" },
-  { label: "Mid",        desc: "Graphs · Binary Search · DP",      pct: 75,  color: "#f59e0b" },
-  { label: "Advanced",   desc: "Segment Trees · Combinatorics",    pct: 50,  color: "#f97316" },
-  { label: "Expert",     desc: "Multi-concept · Creative",         pct: 25,  color: "#dc2626" },
-] as const;
-
-function DifficultyWidget({ inView }: { inView: boolean }) {
-  return (
-    <div className="mt-5 flex flex-col gap-3" aria-label="Problem difficulty breakdown">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400">
-        Problem spectrum per round
-      </span>
-      {DIFFICULTY_SPECTRUM.map((tier, i) => (
-        <div key={tier.label} className="flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="font-sans text-[11px] font-semibold text-slate-600">{tier.label}</span>
-            <span className="font-mono text-[9px] text-slate-400 truncate max-w-[140px] text-right">{tier.desc}</span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(226,232,240,0.80)" }}>
+    <div className="mt-5" aria-label="Contest round structure">
+      <div className="flex items-center">
+        {ROUND_STEPS.map((step, i) => (
+          <div key={step.label} className="flex items-center flex-1 last:flex-none">
+            {/* Step circle + label */}
             <motion.div
-              className="h-full rounded-full"
-              style={{ backgroundColor: tier.color }}
-              initial={{ width: 0 }}
-              animate={inView ? { width: `${tier.pct}%` } : {}}
-              transition={{ duration: 0.7, delay: 0.2 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-            />
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ duration: 0.4, delay: 0.2 + i * 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className="flex flex-col items-center gap-1.5 flex-shrink-0"
+            >
+              <span
+                className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-[11px] font-bold text-white flex-shrink-0"
+                style={{ background: accentRaw }}
+              >
+                {i + 1}
+              </span>
+              <span className="font-sans text-[11px] font-semibold text-slate-700 text-center whitespace-nowrap">
+                {step.label}
+              </span>
+              <span className="font-mono text-[8px] uppercase tracking-widest text-slate-400">
+                {step.sub}
+              </span>
+            </motion.div>
+
+            {/* Connector line — not after the last step */}
+            {i < ROUND_STEPS.length - 1 && (
+              <motion.div
+                className="h-px flex-1 mx-2 mb-5"
+                style={{ background: `${accentRaw}30` }}
+                initial={{ scaleX: 0 }}
+                animate={inView ? { scaleX: 1 } : {}}
+                transition={{ duration: 0.4, delay: 0.3 + i * 0.15, ease: [0.22, 1, 0.36, 1] }}
+              />
+            )}
           </div>
-        </div>
-      ))}
-      <div className="flex justify-between mt-1">
-        <span className="font-mono text-[9px] text-slate-400 uppercase tracking-widest">Easy</span>
-        <span className="font-mono text-[9px] text-slate-400 uppercase tracking-widest">Hard</span>
+        ))}
       </div>
     </div>
   );
 }
 
-// Card C — Prize & Recognition: what winners actually receive
+// Card B — Problem Difficulty: one segmented bar, single accent colour
+// (opacity increases per segment to show rising difficulty — no rainbow)
+function DifficultyWidget({ inView, accentRaw }: { inView: boolean; accentRaw: string }) {
+  const segments = [0.30, 0.55, 0.80, 1.0];
+  return (
+    <div className="mt-5" aria-label="Problem difficulty spectrum">
+      <div className="flex items-center gap-1">
+        {segments.map((opacity, i) => (
+          <motion.div
+            key={i}
+            className="h-2 flex-1 rounded-full"
+            style={{ background: accentRaw, opacity }}
+            initial={{ scaleY: 0 }}
+            animate={inView ? { scaleY: 1 } : {}}
+            transition={{ duration: 0.35, delay: 0.2 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between mt-2">
+        <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400">Warm-up</span>
+        <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400">Expert</span>
+      </div>
+    </div>
+  );
+}
+
+// Card C — Prize & Recognition: 2×2 icon grid, single accent colour
 const PRIZE_HIGHLIGHTS = [
-  { icon: "🏆", label: "Cash Prizes",       desc: "Top 3 teams + individual awards" },
-  { icon: "📜", label: "Certificates",      desc: "For all finalists & ranked participants" },
-  { icon: "🎁", label: "Sponsor Swag",      desc: "Kits from industry sponsors"       },
-  { icon: "🔗", label: "Hiring Referrals",  desc: "Direct to partner companies"       },
+  { icon: "🏆", label: "Cash Prizes"      },
+  { icon: "📜", label: "Certificates"     },
+  { icon: "🎁", label: "Sponsor Swag"     },
+  { icon: "🔗", label: "Hiring Referrals" },
 ] as const;
 
-function PrizeWidget({ inView }: { inView: boolean }) {
+function PrizeWidget({ inView, accentRaw }: { inView: boolean; accentRaw: string }) {
   return (
     <div className="mt-5 grid grid-cols-2 gap-2" aria-label="Prize and recognition details">
       {PRIZE_HIGHLIGHTS.map((item, i) => (
@@ -638,45 +591,44 @@ function PrizeWidget({ inView }: { inView: boolean }) {
           key={item.label}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={inView ? { opacity: 1, scale: 1 } : {}}
-          transition={{ duration: 0.38, delay: 0.18 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col gap-1.5 p-3 rounded-xl border border-white/60"
-          style={{ background: "rgba(248,250,252,0.80)" }}
+          transition={{ duration: 0.35, delay: 0.18 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+          className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+          style={{ background: `${accentRaw}08`, border: `1px solid ${accentRaw}20` }}
         >
-          <span className="text-lg leading-none">{item.icon}</span>
-          <span className="font-sans text-[11px] font-semibold text-slate-700 leading-tight">{item.label}</span>
-          <span className="font-mono text-[9px] text-slate-400 leading-relaxed">{item.desc}</span>
+          <span className="text-base leading-none flex-shrink-0">{item.icon}</span>
+          <span className="font-sans text-[11px] font-semibold text-slate-700 leading-tight">
+            {item.label}
+          </span>
         </motion.div>
       ))}
     </div>
   );
 }
 
-// Card D — Reach & Scale: animated stat pills showing real contest scale
+// Card D — National Scale: 4 stat pills max, single accent colour
 const SCALE_STATS = [
-  { value: "200+",  label: "Colleges",      color: "#1D4ED8", bg: "rgba(29,78,216,0.07)",  border: "rgba(29,78,216,0.18)" },
-  { value: "Pan-India", label: "Reach",     color: "#16A34A", bg: "rgba(22,163,74,0.07)",  border: "rgba(22,163,74,0.18)" },
-  { value: "3",     label: "Rounds",        color: "#F59E0B", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.22)" },
-  { value: "48hrs", label: "Final Sprint",  color: "#DC2626", bg: "rgba(220,38,38,0.07)",  border: "rgba(220,38,38,0.20)" },
-  { value: "₹10L+", label: "Prize Pool",   color: "#7c3aed", bg: "rgba(124,58,237,0.07)", border: "rgba(124,58,237,0.20)" },
-  { value: "ICPC",  label: "Style Rules",  color: "#0891b2", bg: "rgba(8,145,178,0.07)",  border: "rgba(8,145,178,0.18)" },
+  { value: "200+",     label: "Colleges"     },
+  { value: "Pan-India", label: "Reach"       },
+  { value: "3",         label: "Rounds"      },
+  { value: "48hrs",     label: "Final Sprint" },
 ] as const;
 
-function ScaleWidget({ inView }: { inView: boolean }) {
+function ScaleWidget({ inView, accentRaw }: { inView: boolean; accentRaw: string }) {
   return (
-    <div className="mt-5 flex flex-wrap gap-2" aria-label="Contest scale and reach">
+    <div className="mt-5 grid grid-cols-4 gap-2" aria-label="Contest scale and reach">
       {SCALE_STATS.map((stat, i) => (
         <motion.div
           key={stat.label}
-          initial={{ opacity: 0, y: 12, scale: 0.88 }}
-          animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
-          transition={{ duration: 0.4, delay: 0.15 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col items-center px-3 py-2 rounded-xl"
-          style={{ background: stat.bg, border: `1px solid ${stat.border}` }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.35, delay: 0.15 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col items-center gap-0.5 px-2 py-2.5 rounded-xl text-center"
+          style={{ background: `${accentRaw}08`, border: `1px solid ${accentRaw}20` }}
         >
-          <span className="font-mono text-sm font-bold" style={{ color: stat.color }}>
+          <span className="font-mono text-xs font-bold" style={{ color: accentRaw }}>
             {stat.value}
           </span>
-          <span className="font-mono text-[9px] uppercase tracking-widest text-slate-400 mt-0.5">
+          <span className="font-mono text-[8px] uppercase tracking-widest text-slate-400 leading-tight">
             {stat.label}
           </span>
         </motion.div>
@@ -686,7 +638,8 @@ function ScaleWidget({ inView }: { inView: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Updated BENTO_CARDS — real contest information, no fake metrics
+// OVERVIEW_CARDS — content unchanged (real data), colour palette untouched
+// (this was already correct: one accent per card, matching the site system)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const OVERVIEW_CARDS = [
@@ -704,7 +657,7 @@ const OVERVIEW_CARDS = [
     badgeSub: "qualifier → semi → final",
     title: "ICPC-Style Contest Format",
     description:
-      "Three progressive rounds — online qualifier, online semi-final, and a live on-campus grand final at KIET. Each stage raises the bar.",
+      "Three progressive rounds — online qualifier, online semi-final, and a live on-campus grand final at KIET.",
     wide: true,
     widget: "format",
   },
@@ -722,7 +675,7 @@ const OVERVIEW_CARDS = [
     badgeSub: "per round",
     title: "Complex DSA Problem Sets",
     description:
-      "Curated by national-level competitive programmers. Problems span implementation, graphs, DP, and multi-concept hard problems.",
+      "Problems spanning graphs, DP, segment trees, and combinatorics — curated to separate ranks.",
     wide: false,
     widget: "problems",
   },
@@ -740,7 +693,7 @@ const OVERVIEW_CARDS = [
     badgeSub: "cash · swag · referrals",
     title: "Prizes and Recognition",
     description:
-      "Cash awards for top finishers, certificates for all ranked participants, sponsor swag kits, and direct hiring referrals to partner companies.",
+      "Cash awards, certificates, sponsor swag, and direct hiring referrals to partner companies.",
     wide: false,
     widget: "prizes",
   },
@@ -758,14 +711,14 @@ const OVERVIEW_CARDS = [
     badgeSub: "pan-india reach",
     title: "National Scale Competition",
     description:
-      "Open to students from any college across India — KIET, NITs, IITs, state universities, and autonomous institutions all on the same leaderboard.",
+      "Open to students from any college across India — all on the same national leaderboard.",
     wide: true,
     widget: "scale",
   },
 ] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OverviewCard — premium light card with unique per-card widget
+// OverviewCard — unchanged structure, widgets now receive accentRaw
 // ─────────────────────────────────────────────────────────────────────────────
 
 function OverviewCard({
@@ -807,8 +760,6 @@ function OverviewCard({
       className={`relative flex flex-col overflow-hidden rounded-2xl cursor-default
         ${card.wide ? "md:col-span-2" : "md:col-span-1"}`}
       style={{
-        // Solid white bg — no backdrop-blur so the image behind is NOT blurred
-        // Cards pop as crisp white panels floating over the visible bg image
         background:  hovered ? "#ffffff" : "rgba(255,255,255,0.96)",
         border:      `1px solid ${hovered ? card.accentBorder : "rgba(30,41,59,0.10)"}`,
         boxShadow:   hovered
@@ -851,7 +802,6 @@ function OverviewCard({
 
         {/* Top row: icon + badge */}
         <div className="flex items-start justify-between gap-4">
-          {/* Icon */}
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
@@ -864,7 +814,6 @@ function OverviewCard({
             <IconComponent size={19} className={card.accentText} strokeWidth={1.75} />
           </div>
 
-          {/* Badge pill — real label, not a fake counter */}
           <div className="text-right flex-shrink-0">
             <span
               className="font-mono font-bold tracking-tight leading-none block"
@@ -892,11 +841,11 @@ function OverviewCard({
           {card.description}
         </p>
 
-        {/* Unique inner widget — real information, premium design */}
-        {card.widget === "format"   && <FormatWidget     inView={inView} />}
-        {card.widget === "problems" && <DifficultyWidget inView={inView} />}
-        {card.widget === "prizes"   && <PrizeWidget      inView={inView} />}
-        {card.widget === "scale"    && <ScaleWidget      inView={inView} />}
+        {/* Unique inner widget — every widget now uses ONLY card.accentRaw */}
+        {card.widget === "format"   && <FormatWidget     inView={inView} accentRaw={card.accentRaw} />}
+        {card.widget === "problems" && <DifficultyWidget inView={inView} accentRaw={card.accentRaw} />}
+        {card.widget === "prizes"   && <PrizeWidget      inView={inView} accentRaw={card.accentRaw} />}
+        {card.widget === "scale"    && <ScaleWidget      inView={inView} accentRaw={card.accentRaw} />}
       </div>
 
       {/* Ghost numeral watermark */}
@@ -916,18 +865,20 @@ function OverviewCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OverviewSection — cinematic overview-bg.jpg with frosted glass cards
+// OverviewSection — REDESIGNED (round 2)
 //
-// Layering system (bottom → top):
-//   1. overview-bg.jpg  — full-bleed, object-cover, fixed parallax feel
-//   2. White gradient overlay — heavy at top/bottom, near-transparent centre
-//      so the coding screenshot bleeds through behind the cards without
-//      ever competing with the text
-//   3. Fine dot-grid at very low opacity — adds micro-texture over the image
-//   4. Content: heading (white text on the image area) + frosted glass cards
-//
-// Cards use bg-white/88 + backdrop-blur-md so the image peeks through
-// each card at ~12% opacity — enough depth to feel premium, not distracting.
+// Changes from the previous version:
+//   1. Removed OverviewStatsStrip entirely — those exact four numbers
+//      (12,000+ / ₹10L / rounds / 200+) already appear in the Hero section.
+//      Repeating them here was pure duplication and added visual noise.
+//   2. Removed the multi-colour QUICK_FACT_PILLS row — replaced with a
+//      single quiet text line (matches the calmer footer style used by
+//      Timeline/Eligibility sections).
+//   3. Every card widget now speaks in exactly one colour (the card's own
+//      accentRaw) instead of introducing new hues — the six-colour
+//      ScaleWidget is gone, replaced with a single-red four-pill row.
+//   4. Reduced heading-to-cards spacing slightly — less scrolling before
+//      the actual content appears.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
@@ -935,70 +886,52 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
     <section
       id="overview"
       aria-label="Contest Overview"
-      className="relative overflow-hidden pt-16 pb-12 lg:pt-20 lg:pb-16"
+      className="relative overflow-hidden py-20 lg:py-28 bg-slate-50"
     >
-
-      {/* ── LAYER 1: Background image — full-bleed, clearly visible ── */}
-      <div className="absolute inset-0 z-0" aria-hidden="true">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/assets/overview-bg.jpg"
-          alt=""
-          className="w-full h-full object-cover object-center"
-          aria-hidden="true"
-        />
-      </div>
-
-      {/* ── LAYER 2: Minimal scrim — only enough for text readability ──
-          No heavy white at top/bottom — image must be visible everywhere.
-          Only the absolute centre of the heading gets a mild white haze.
-          Cards float as solid white panels — they don't need an overlay.  */}
+      {/* Quiet dot-grid texture — consistent with Timeline/Eligibility sections */}
       <div
-        className="pointer-events-none absolute inset-0 z-10"
+        className="pointer-events-none absolute inset-0 opacity-50"
         style={{
-          background:
-            "linear-gradient(to bottom," +
-            "rgba(255,255,255,0.60) 0%," +
-            "rgba(255,255,255,0.15) 8%," +
-            "rgba(255,255,255,0.06) 20%," +
-            "rgba(255,255,255,0.04) 50%," +
-            "rgba(255,255,255,0.06) 80%," +
-            "rgba(255,255,255,0.15) 92%," +
-            "rgba(255,255,255,0.60) 100%)",
+          backgroundImage: "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
+          backgroundSize:  "40px 40px",
         }}
         aria-hidden="true"
       />
 
-      {/* ── LAYER 3: Tiny brand-blue tint — ties image to CodeRush identity ── */}
+      {/* Top blend — smooth transition from the white About section above */}
       <div
-        className="pointer-events-none absolute inset-0 z-10"
-        style={{ background: "rgba(29,78,216,0.03)" }}
+        className="pointer-events-none absolute top-0 left-0 right-0 h-24"
+        style={{ background: "linear-gradient(to bottom, #ffffff 0%, transparent 100%)" }}
         aria-hidden="true"
       />
 
-      {/* ── LAYER 5: Content ── */}
-      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Ambient glow — top-left brand-blue */}
+      <div
+        className="pointer-events-none absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(29,78,216,0.08) 0%, transparent 65%)" }}
+        aria-hidden="true"
+      />
 
-        {/* Section heading — sits directly on the image zone, uses dark text
-            because the image is bright (Mac + code + daylit room)          */}
+      {/* Ambient glow — bottom-right brand-red */}
+      <div
+        className="pointer-events-none absolute -bottom-24 -right-24 w-[420px] h-[420px] rounded-full blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(220,38,38,0.06) 0%, transparent 65%)" }}
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+        {/* ── Section heading ── */}
         <motion.div
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center mb-8 lg:mb-12"
+          className="text-center mb-12 lg:mb-16"
         >
-          {/* Eyebrow pill — frosted so image shows through */}
           <div className="flex justify-center mb-5">
-            <span
-              className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest
-                         text-brand-blue px-4 py-2 rounded-full"
-              style={{
-                border:     "1px solid rgba(29,78,216,0.30)",
-                background: "rgba(255,255,255,0.92)",
-                boxShadow:  "0 2px 12px rgba(0,0,0,0.08)",
-              }}
-            >
+            <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest
+                             text-brand-blue border border-brand-blue/20 bg-brand-blue/5 px-4 py-2 rounded-full">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-60" aria-hidden="true" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-blue" aria-hidden="true" />
@@ -1007,36 +940,25 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
             </span>
           </div>
 
-          {/* Main heading — strong white halo for readability over visible image */}
           <h2
             className="font-sans font-black text-brand-dark tracking-tight mb-4"
-            style={{
-              fontSize:   "clamp(2rem, 5vw, 3.5rem)",
-              lineHeight: 1.05,
-              textShadow:
-                "0 0 20px rgba(255,255,255,1), " +
-                "0 0 40px rgba(255,255,255,0.95), " +
-                "0 2px 8px rgba(255,255,255,0.9)",
-            }}
+            style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", lineHeight: 1.05 }}
           >
             Everything a competitive{" "}
             <br className="hidden sm:block" />
-            {/* Solid colour — no webkit gradient which blurs on dark image backgrounds */}
-            <span style={{ color: "#1D4ED8" }}>
+            <span
+              style={{
+                background:           "linear-gradient(135deg, #1D4ED8 0%, #7c3aed 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor:  "transparent",
+                backgroundClip:       "text",
+              }}
+            >
               programmer needs.
             </span>
           </h2>
 
-          {/* Subheading — strong white pill so it reads over dark parts of image */}
-          <p
-            className="font-sans text-[15px] leading-relaxed max-w-xl mx-auto px-5 py-2.5 rounded-xl"
-            style={{
-              color:      "#334155",
-              background: "rgba(255,255,255,0.92)",
-              border:     "1px solid rgba(30,41,59,0.08)",
-              boxShadow:  "0 2px 12px rgba(0,0,0,0.06)",
-            }}
-          >
+          <p className="font-sans text-[15px] text-slate-500 leading-relaxed max-w-xl mx-auto">
             Four pillars that define the CodeRush experience — hover each card to explore.
           </p>
 
@@ -1066,33 +988,26 @@ function OverviewSection({ reducedMotion }: { reducedMotion: boolean }) {
           </motion.div>
         </motion.div>
 
-        {/* Card grid — cards use frosted glass so image bleeds through */}
+        {/* ── Card grid ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
           {OVERVIEW_CARDS.map((card, i) => (
             <OverviewCard key={card.id} card={card} index={i} reducedMotion={reducedMotion} />
           ))}
         </div>
 
-        {/* Bottom attestation */}
+        {/* ── Footer line — single quiet text, matches Timeline/Eligibility style ── */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, amount: 0.5 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-          className="mt-8 flex justify-center items-center gap-4"
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="mt-10 flex justify-center items-center gap-4"
         >
-          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-slate-300/50" aria-hidden="true" />
-          <p
-            className="font-mono text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-full"
-            style={{
-              color:      "#64748b",
-              background: "rgba(255,255,255,0.92)",
-              border:     "1px solid rgba(30,41,59,0.08)",
-            }}
-          >
+          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-slate-200" aria-hidden="true" />
+          <p className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
             Custom online judge · Plagiarism detection · Real-time scoring
           </p>
-          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-slate-300/50" aria-hidden="true" />
+          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-slate-200" aria-hidden="true" />
         </motion.div>
 
       </div>

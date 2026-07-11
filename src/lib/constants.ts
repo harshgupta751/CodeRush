@@ -30,3 +30,5 @@ export const CONTEST_VENUE = "KIET Group of Institutions, Ghaziabad";
 
 /** Registration deadline — displayed in the Footer CTA column. */
 export const REGISTRATION_DEADLINE = "14th August 2026";
+
+export const SITE_URL = "https://coderush-three.vercel.app";
